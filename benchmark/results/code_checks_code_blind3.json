@@ -1,0 +1,86 @@
+{
+  "corpus": "code_blind3",
+  "cases": 53,
+  "clean_cases": 20,
+  "clean_cases_flagged": 0,
+  "precision": 1.0,
+  "precision_ci95": [
+    0.898,
+    1.0
+  ],
+  "recall": 1.0,
+  "recall_ci95": [
+    0.898,
+    1.0
+  ],
+  "exact_cases": 53,
+  "per_code": {
+    "HV-COD-001": {
+      "tp": 8,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "recall_ci95": [
+        0.676,
+        1.0
+      ]
+    },
+    "HV-COD-002": {
+      "tp": 5,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "recall_ci95": [
+        0.566,
+        1.0
+      ]
+    },
+    "HV-COD-003": {
+      "tp": 5,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "recall_ci95": [
+        0.566,
+        1.0
+      ]
+    },
+    "HV-COD-004": {
+      "tp": 5,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "recall_ci95": [
+        0.566,
+        1.0
+      ]
+    },
+    "HV-COD-005": {
+      "tp": 5,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "recall_ci95": [
+        0.566,
+        1.0
+      ]
+    },
+    "HV-COD-006": {
+      "tp": 6,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "recall_ci95": [
+        0.61,
+        1.0
+      ]
+    }
+  },
+  "mismatches": []
+}

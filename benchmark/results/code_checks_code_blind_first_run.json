@@ -1,0 +1,153 @@
+{
+  "corpus": "code_blind",
+  "cases": 82,
+  "clean_cases": 24,
+  "clean_cases_flagged": 0,
+  "precision": 1.0,
+  "precision_ci95": [
+    0.932,
+    1.0
+  ],
+  "recall": 0.855,
+  "recall_ci95": [
+    0.747,
+    0.922
+  ],
+  "exact_cases": 73,
+  "per_code": {
+    "HV-COD-001": {
+      "tp": 14,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "recall_ci95": [
+        0.785,
+        1.0
+      ]
+    },
+    "HV-COD-002": {
+      "tp": 10,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "recall_ci95": [
+        0.722,
+        1.0
+      ]
+    },
+    "HV-COD-003": {
+      "tp": 4,
+      "fp": 0,
+      "fn": 5,
+      "precision": 1.0,
+      "recall": 0.444,
+      "recall_ci95": [
+        0.189,
+        0.733
+      ]
+    },
+    "HV-COD-004": {
+      "tp": 7,
+      "fp": 0,
+      "fn": 4,
+      "precision": 1.0,
+      "recall": 0.636,
+      "recall_ci95": [
+        0.354,
+        0.848
+      ]
+    },
+    "HV-COD-005": {
+      "tp": 8,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "recall_ci95": [
+        0.676,
+        1.0
+      ]
+    },
+    "HV-COD-006": {
+      "tp": 10,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "recall_ci95": [
+        0.722,
+        1.0
+      ]
+    }
+  },
+  "mismatches": [
+    {
+      "case": "case47_churn_times_x2_feature.py",
+      "expected": [
+        "HV-COD-003"
+      ],
+      "found": []
+    },
+    {
+      "case": "case48_feature_list_includes_target.py",
+      "expected": [
+        "HV-COD-003"
+      ],
+      "found": []
+    },
+    {
+      "case": "case49_region_churn_rate_feature.py",
+      "expected": [
+        "HV-COD-003"
+      ],
+      "found": []
+    },
+    {
+      "case": "case53_nb_churn_flag_feature.ipynb",
+      "expected": [
+        "HV-COD-003"
+      ],
+      "found": []
+    },
+    {
+      "case": "case55_read_raw_test_os_join.py",
+      "expected": [
+        "HV-COD-004"
+      ],
+      "found": []
+    },
+    {
+      "case": "case56_read_raw_test_pathlib.py",
+      "expected": [
+        "HV-COD-004"
+      ],
+      "found": []
+    },
+    {
+      "case": "case60_read_ledger_jsonl.py",
+      "expected": [
+        "HV-COD-004"
+      ],
+      "found": []
+    },
+    {
+      "case": "case61_multi_utils_loads_raw_test",
+      "expected": [
+        "HV-COD-004"
+      ],
+      "found": []
+    },
+    {
+      "case": "case81_target_feature_and_raw_test.py",
+      "expected": [
+        "HV-COD-003",
+        "HV-COD-004"
+      ],
+      "found": [
+        "HV-COD-004"
+      ]
+    }
+  ]
+}

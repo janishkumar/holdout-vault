@@ -136,7 +136,7 @@ Spec 2026-07-28, `mcp>=2.3,<3`. Stdio and stateless Streamable HTTP. Determinist
 |---|---|---|
 | `score(dataset, predictions_path, seed?)` | Score a predictions file (id, prediction) against sealed labels | Yes |
 | `evaluate(dataset, model_path, seed?)` | Run the model in the runner, then score. Tasks-enabled | Yes |
-| `check_leakage(dataset?, paths?)` | Row checks and code checks without scoring | No |
+| `check_leakage(dataset, paths?)` | Row, code and canary-artifact checks without scoring | No |
 | `audit_claims(paths? \| text?)` | Check metric claims against the ledger | No |
 | `vault_status()` | Datasets, budget left, mode, ledger head | No |
 
@@ -152,25 +152,37 @@ Spec 2026-07-28, `mcp>=2.3,<3`. Stdio and stateless Streamable HTTP. Determinist
 
 ## 8. Integrity checks
 
-**Row checks (vault side, on registration and on each submission):**
-- `HV-ROW-001` exact duplicate rows across train and test (canonical row hash on features).
-- `HV-ROW-002` near-duplicate rows (numeric features standardised, categorical one-hot, nearest neighbour under a distance threshold calibrated on within-train distances).
-- `HV-ROW-003` time order: train rows later than the earliest test row.
-- `HV-ROW-004` group overlap: the same group id in train and test.
-- `HV-CAN-001` canary marker values found in training artifacts in the workspace (data files, model files, notebooks, caches).
-- `HV-CAN-002` predictions agree with canary labels well above chance (binomial test), which means the labels were seen.
-- `HV-SCR-001` scorer hash mismatch.
-- `HV-TST-001` (watch-only) test file changed, or read after registration where the OS exposes access times.
+Every finding has a stable code, a severity, a plain-English explanation and an exact location. Blocking findings refuse the score, are written to the ledger as `refused`, and spend nothing. Warnings are attached to the score and to its ledger entry.
 
-**Code checks (front-door side, Python files and notebooks):**
-- `HV-COD-001` a preprocessing fit (scaler, encoder, imputer, selector, PCA, target encoder) runs on data before it is split.
-- `HV-COD-002` a fit or `fit_transform` receives test data.
-- `HV-COD-003` the target, or a feature derived from it, is used as an input.
-- `HV-COD-004` the test file path is read in training code.
-- `HV-COD-005` resampling (SMOTE and similar) before the split.
-- `HV-COD-006` the scorer or vault config is written to.
+**Severity policy.** The sealed test set lives outside the agent's code, so ordinary leakage mistakes (a scaler fitted before the split, the target left in the features) cannot raise the vault's score; they inflate the agent's own validation numbers, which matter for claims (section 9). They are warnings. Findings that mean the agent reached for the sealed labels or the scorer block: reading the labelled test file or the vault store, changing vault files, patching scoring functions, and canary labels showing up anywhere.
 
-Analysis is AST-based with def-use chains inside functions and a simple call graph across functions and modules in the repo, so a fit inside a helper called before `train_test_split` is caught. Rules are written from scratch. LeakageLens-MCP and leakguard-mcp are credited as inspiration, and their code and rule text are not used.
+**Row checks** (vault side, once at registration, on the real test rows; stored with the dataset record and shown by `check_leakage`; `register --strict` refuses instead of warning):
+- `HV-ROW-001` exact duplicate feature rows across train and test (canonical row hash). Flagged only when the cross-split rate exceeds twice the rate at which train repeats itself plus 0.1%, so data with naturally repeating rows is not flagged.
+- `HV-ROW-002` near-duplicates: numeric features standardised on train, categoricals one-hot (top 50), nearest neighbour to train. The radius is 5% of the median train-to-train nearest-neighbour distance, and test is flagged when at least 3 rows fall inside it and the rate exceeds three times the train base rate plus 0.5%.
+- `HV-ROW-003` train rows later than the earliest test row on the time column.
+- `HV-ROW-004` group ids present in both splits.
+
+**Canary checks:**
+- `HV-CAN-001` a data file in the workspace (CSV, TSV, Parquet, Feather, JSON, JSONL) holds at least 10 canary ids next to a column that matches their sealed labels far above chance (the same test as `HV-CAN-002`). The front door collects candidate tables because only it can see the workspace; the vault compares them because only it holds the canary labels. Model files and pickles are never opened, since unpickling runs arbitrary code.
+- `HV-CAN-002` predictions agree with canary labels well above chance.
+
+**Tamper checks** (every call): `HV-SCR-001` scorer hash, `HV-LAB-001` sealed label hash, `HV-TST-001` watched test file hash (watch-only mode).
+
+**Code checks** (front-door side, every score and `check_leakage`; Python files and notebooks, virtualenvs and hidden folders skipped):
+- `HV-COD-001` a preprocessing fit (scaler, encoder, imputer, selector, PCA/SVD, vectoriser, target encoder, ColumnTransformer) on data that is later split or cross-validated, or a transformer fitted on unsplit data applied to the split parts. Warn.
+- `HV-COD-002` a fit, `fit_transform` or `fit_resample` receives the validation side of the agent's split or the exported test features. Refitting on train plus validation together is allowed. Warn.
+- `HV-COD-003` the target, or a column computed from it, is a model input. Warn.
+- `HV-COD-004` the labelled test file or the vault store is read. Block.
+- `HV-COD-005` resampling before the split or cross-validation. Warn.
+- `HV-COD-006` vault files written, moved or deleted; scoring functions in `sklearn.metrics` or `holdout_vault` reassigned or patched (`mock.patch`, `patch.object`, `setattr`); Docker commands that reach inside the vault container (exec, cp, volume access). Read-only Docker commands are fine. Block.
+
+The analysis is an abstract interpretation over the AST. Each value carries a small label set (unsplit data, train side, validation side, exported test features, target-derived), whether a frame still holds the target column and which columns were computed from it, estimator kind, constant strings for paths and column names, dictionary fields, instance attributes, and `functools.partial` targets. Statements run in order; calls into functions, methods and classes defined in the repo are analysed with the caller's argument labels, across modules and package re-exports, memoised and depth-limited. Module globals are filled in a first pass so constants defined in other files are known. Inline JSON, YAML and TOML configs are parsed. A preprocessing fit on unsplit data is held as a pending candidate and becomes `HV-COD-001` only when that data or the fitted transformer later meets a split, because fitting on all of train.csv for the final model is correct. Rules are written from scratch; LeakageLens-MCP and leakguard-mcp are credited as inspiration, and their code and rule text are not used.
+
+A checker failure never blocks scoring: it returns an `HV-CHK-000` info finding saying nothing was checked.
+
+**Evaluation.** Precision and recall come from corpora generated by separate language-model sessions given only the definitions above, without access to the checker, each scored once before any change informed by it (`benchmark/code_checks.py`). Misses were then fixed in general form with separate tests, and all corpora are kept as a regression test. Row checks are measured on seeded synthetic splits with injected problems and false-alarm controls (`benchmark/row_checks.py`), the artifact check on synthetic leaked label files (`benchmark/canary_artifacts.py`).
+
+**Limits.** Static analysis cannot see code built to hide a read (`exec`, obfuscated strings, files fetched at runtime), and it does not resolve positional numpy column indices. It catches the common case and leaves a record; the sealed container is what keeps the labels out of reach.
 
 ## 9. Provenance and claims
 

@@ -1,0 +1,115 @@
+{
+  "corpus": "code_blind3",
+  "cases": 53,
+  "clean_cases": 20,
+  "clean_cases_flagged": 1,
+  "precision": 0.969,
+  "precision_ci95": [
+    0.843,
+    0.994
+  ],
+  "recall": 0.912,
+  "recall_ci95": [
+    0.77,
+    0.97
+  ],
+  "exact_cases": 49,
+  "per_code": {
+    "HV-COD-001": {
+      "tp": 8,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "recall_ci95": [
+        0.676,
+        1.0
+      ]
+    },
+    "HV-COD-002": {
+      "tp": 5,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "recall_ci95": [
+        0.566,
+        1.0
+      ]
+    },
+    "HV-COD-003": {
+      "tp": 3,
+      "fp": 1,
+      "fn": 2,
+      "precision": 0.75,
+      "recall": 0.6,
+      "recall_ci95": [
+        0.231,
+        0.882
+      ]
+    },
+    "HV-COD-004": {
+      "tp": 5,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "recall_ci95": [
+        0.566,
+        1.0
+      ]
+    },
+    "HV-COD-005": {
+      "tp": 5,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "recall_ci95": [
+        0.566,
+        1.0
+      ]
+    },
+    "HV-COD-006": {
+      "tp": 5,
+      "fp": 0,
+      "fn": 1,
+      "precision": 1.0,
+      "recall": 0.833,
+      "recall_ci95": [
+        0.436,
+        0.97
+      ]
+    }
+  },
+  "mismatches": [
+    {
+      "case": "case16_pkg_clean",
+      "expected": [],
+      "found": [
+        "HV-COD-003"
+      ]
+    },
+    {
+      "case": "case35_lambda_assign_target.py",
+      "expected": [
+        "HV-COD-003"
+      ],
+      "found": []
+    },
+    {
+      "case": "case36_target_in_json_features.py",
+      "expected": [
+        "HV-COD-003"
+      ],
+      "found": []
+    },
+    {
+      "case": "case50_patch_vault_module.py",
+      "expected": [
+        "HV-COD-006"
+      ],
+      "found": []
+    }
+  ]
+}

@@ -1,0 +1,86 @@
+{
+  "corpus": "code_blind",
+  "cases": 82,
+  "clean_cases": 24,
+  "clean_cases_flagged": 0,
+  "precision": 1.0,
+  "precision_ci95": [
+    0.942,
+    1.0
+  ],
+  "recall": 1.0,
+  "recall_ci95": [
+    0.942,
+    1.0
+  ],
+  "exact_cases": 82,
+  "per_code": {
+    "HV-COD-001": {
+      "tp": 14,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "recall_ci95": [
+        0.785,
+        1.0
+      ]
+    },
+    "HV-COD-002": {
+      "tp": 10,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "recall_ci95": [
+        0.722,
+        1.0
+      ]
+    },
+    "HV-COD-003": {
+      "tp": 9,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "recall_ci95": [
+        0.701,
+        1.0
+      ]
+    },
+    "HV-COD-004": {
+      "tp": 11,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "recall_ci95": [
+        0.741,
+        1.0
+      ]
+    },
+    "HV-COD-005": {
+      "tp": 8,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "recall_ci95": [
+        0.676,
+        1.0
+      ]
+    },
+    "HV-COD-006": {
+      "tp": 10,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "recall_ci95": [
+        0.722,
+        1.0
+      ]
+    }
+  },
+  "mismatches": []
+}

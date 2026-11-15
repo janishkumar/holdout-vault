@@ -1,0 +1,170 @@
+{
+  "trials": 100,
+  "scenarios": {
+    "clean_random": {
+      "expected": null,
+      "detected": null,
+      "detection_rate": null,
+      "detection_ci95": null,
+      "false_alarms": 0,
+      "false_alarm_ci95": [
+        0.0,
+        0.037
+      ],
+      "codes_seen": {}
+    },
+    "clean_rounded": {
+      "expected": null,
+      "detected": null,
+      "detection_rate": null,
+      "detection_ci95": null,
+      "false_alarms": 0,
+      "false_alarm_ci95": [
+        0.0,
+        0.037
+      ],
+      "codes_seen": {}
+    },
+    "clean_categorical": {
+      "expected": null,
+      "detected": null,
+      "detection_rate": null,
+      "detection_ci95": null,
+      "false_alarms": 0,
+      "false_alarm_ci95": [
+        0.0,
+        0.037
+      ],
+      "codes_seen": {}
+    },
+    "clean_temporal": {
+      "expected": null,
+      "detected": null,
+      "detection_rate": null,
+      "detection_ci95": null,
+      "false_alarms": 0,
+      "false_alarm_ci95": [
+        0.0,
+        0.037
+      ],
+      "codes_seen": {}
+    },
+    "clean_grouped": {
+      "expected": null,
+      "detected": null,
+      "detection_rate": null,
+      "detection_ci95": null,
+      "false_alarms": 0,
+      "false_alarm_ci95": [
+        0.0,
+        0.037
+      ],
+      "codes_seen": {}
+    },
+    "exact_dup_2pct": {
+      "expected": "HV-ROW-001",
+      "detected": 100,
+      "detection_rate": 1.0,
+      "detection_ci95": [
+        0.963,
+        1.0
+      ],
+      "false_alarms": 0,
+      "false_alarm_ci95": [
+        0.0,
+        0.037
+      ],
+      "codes_seen": {
+        "HV-ROW-001": 100
+      }
+    },
+    "exact_dup_10pct": {
+      "expected": "HV-ROW-001",
+      "detected": 100,
+      "detection_rate": 1.0,
+      "detection_ci95": [
+        0.963,
+        1.0
+      ],
+      "false_alarms": 0,
+      "false_alarm_ci95": [
+        0.0,
+        0.037
+      ],
+      "codes_seen": {
+        "HV-ROW-001": 100
+      }
+    },
+    "near_dup_2pct": {
+      "expected": "HV-ROW-002",
+      "detected": 76,
+      "detection_rate": 0.76,
+      "detection_ci95": [
+        0.668,
+        0.833
+      ],
+      "false_alarms": 0,
+      "false_alarm_ci95": [
+        0.0,
+        0.037
+      ],
+      "codes_seen": {
+        "HV-ROW-002": 76
+      }
+    },
+    "near_dup_10pct": {
+      "expected": "HV-ROW-002",
+      "detected": 97,
+      "detection_rate": 0.97,
+      "detection_ci95": [
+        0.915,
+        0.99
+      ],
+      "false_alarms": 0,
+      "false_alarm_ci95": [
+        0.0,
+        0.037
+      ],
+      "codes_seen": {
+        "HV-ROW-002": 97
+      }
+    },
+    "time_overlap": {
+      "expected": "HV-ROW-003",
+      "detected": 100,
+      "detection_rate": 1.0,
+      "detection_ci95": [
+        0.963,
+        1.0
+      ],
+      "false_alarms": 0,
+      "false_alarm_ci95": [
+        0.0,
+        0.037
+      ],
+      "codes_seen": {
+        "HV-ROW-003": 100
+      }
+    },
+    "group_overlap": {
+      "expected": "HV-ROW-004",
+      "detected": 100,
+      "detection_rate": 1.0,
+      "detection_ci95": [
+        0.963,
+        1.0
+      ],
+      "false_alarms": 0,
+      "false_alarm_ci95": [
+        0.0,
+        0.037
+      ],
+      "codes_seen": {
+        "HV-ROW-004": 100
+      }
+    }
+  },
+  "clean_trials_with_any_finding": 0,
+  "clean_trials": 500,
+  "clean_scenarios_ever_flagged": 0
+}

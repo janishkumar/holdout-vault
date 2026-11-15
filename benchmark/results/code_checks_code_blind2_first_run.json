@@ -1,0 +1,159 @@
+{
+  "corpus": "code_blind2",
+  "cases": 54,
+  "clean_cases": 20,
+  "clean_cases_flagged": 1,
+  "precision": 0.933,
+  "precision_ci95": [
+    0.787,
+    0.982
+  ],
+  "recall": 0.757,
+  "recall_ci95": [
+    0.599,
+    0.866
+  ],
+  "exact_cases": 44,
+  "per_code": {
+    "HV-COD-001": {
+      "tp": 6,
+      "fp": 0,
+      "fn": 1,
+      "precision": 1.0,
+      "recall": 0.857,
+      "recall_ci95": [
+        0.487,
+        0.974
+      ]
+    },
+    "HV-COD-002": {
+      "tp": 5,
+      "fp": 0,
+      "fn": 1,
+      "precision": 1.0,
+      "recall": 0.833,
+      "recall_ci95": [
+        0.436,
+        0.97
+      ]
+    },
+    "HV-COD-003": {
+      "tp": 3,
+      "fp": 1,
+      "fn": 2,
+      "precision": 0.75,
+      "recall": 0.6,
+      "recall_ci95": [
+        0.231,
+        0.882
+      ]
+    },
+    "HV-COD-004": {
+      "tp": 4,
+      "fp": 0,
+      "fn": 3,
+      "precision": 1.0,
+      "recall": 0.571,
+      "recall_ci95": [
+        0.25,
+        0.842
+      ]
+    },
+    "HV-COD-005": {
+      "tp": 4,
+      "fp": 0,
+      "fn": 2,
+      "precision": 1.0,
+      "recall": 0.667,
+      "recall_ci95": [
+        0.3,
+        0.903
+      ]
+    },
+    "HV-COD-006": {
+      "tp": 6,
+      "fp": 1,
+      "fn": 0,
+      "precision": 0.857,
+      "recall": 1.0,
+      "recall_ci95": [
+        0.61,
+        1.0
+      ]
+    }
+  },
+  "mismatches": [
+    {
+      "case": "case12_trainer_preprocess_all.py",
+      "expected": [
+        "HV-COD-001"
+      ],
+      "found": []
+    },
+    {
+      "case": "case14_abs_path_cfg.py",
+      "expected": [
+        "HV-COD-004"
+      ],
+      "found": []
+    },
+    {
+      "case": "case18_trainer_adasyn.py",
+      "expected": [
+        "HV-COD-005"
+      ],
+      "found": []
+    },
+    {
+      "case": "case27_numpy_target_col.py",
+      "expected": [
+        "HV-COD-003"
+      ],
+      "found": []
+    },
+    {
+      "case": "case32_pathlib_join.py",
+      "expected": [
+        "HV-COD-004"
+      ],
+      "found": []
+    },
+    {
+      "case": "case34_docker_logs.py",
+      "expected": [],
+      "found": [
+        "HV-COD-006"
+      ]
+    },
+    {
+      "case": "case41_partial_fit_val.py",
+      "expected": [
+        "HV-COD-002"
+      ],
+      "found": []
+    },
+    {
+      "case": "case42_dataclass_cols.py",
+      "expected": [
+        "HV-COD-003"
+      ],
+      "found": []
+    },
+    {
+      "case": "case43_partial_smote.py",
+      "expected": [
+        "HV-COD-005"
+      ],
+      "found": [
+        "HV-COD-003"
+      ]
+    },
+    {
+      "case": "case51_mf_raw_loader",
+      "expected": [
+        "HV-COD-004"
+      ],
+      "found": []
+    }
+  ]
+}
