@@ -9,6 +9,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from holdout_vault.checks.rows import row_findings
 from holdout_vault.core.canary import make_canaries, new_ids
 from holdout_vault.core.errors import RegistrationError
 from holdout_vault.core.hashing import file_sha256, frame_sha256
@@ -74,6 +75,7 @@ def register_dataset(
     replace: bool = False,
     by: str | None = None,
     agent_export_dir: str | None = None,
+    strict: bool = False,
 ) -> DatasetRecord:
     try:
         check_name("dataset", name)
@@ -122,6 +124,19 @@ def register_dataset(
     missing = [c for c in feature_cols if c not in train.columns]
     if missing:
         raise RegistrationError(f"test columns missing from train: {', '.join(missing)}")
+
+    rows = row_findings(
+        train,
+        test,
+        feature_cols,
+        test_ids=test[id_col] if id_col in test.columns else pd.Series(range(len(test))),
+        time_col=time_col,
+        group_col=group_col,
+        seed=seed,
+    )
+    if strict and rows:
+        listed = "; ".join(f"{f.code} {f.title}" for f in rows)
+        raise RegistrationError(f"row checks failed (--strict): {listed}")
 
     n_can = canary_count(len(test))
     can_feats, can_labels = make_canaries(train, feature_cols, target, task, n_can, rng)
@@ -197,6 +212,7 @@ def register_dataset(
         time_col=time_col,
         group_col=group_col,
         classes=classes,
+        row_findings=[f.to_dict() for f in rows],
     )
     store.write_record(record)
     store.ledger.append(
@@ -214,6 +230,7 @@ def register_dataset(
             "scorer_kind": scorer_kind,
             "scorer_sha256": scorer_sha,
             "replace": replace,
+            "row_findings": [f.code for f in rows],
             "by": by,
         },
     )

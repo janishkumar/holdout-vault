@@ -63,6 +63,7 @@ class DatasetRecord:
     time_col: str | None = None
     group_col: str | None = None
     classes: list[str] = field(default_factory=list)
+    row_findings: list[dict[str, Any]] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
