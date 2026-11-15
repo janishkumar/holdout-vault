@@ -134,7 +134,7 @@ def run_one(task: Task, backend: str, agent: str, args: argparse.Namespace) -> d
         elif backend == "ollama":
             import local_agent
 
-            extra.update(local_agent.run(env, model=args.model, max_steps=args.max_steps))
+            extra.update(local_agent.run(env, model=args.model, max_steps=args.max_steps, verbose=args.verbose))
         elif backend == "claude":
             import claude_agent
 
@@ -157,6 +157,7 @@ def main() -> None:
     ap.add_argument("--datasets", nargs="+", default=list(DATASETS))
     ap.add_argument("--arms", nargs="+", default=list(ARMS))
     ap.add_argument("--max-steps", type=int, default=30)
+    ap.add_argument("--verbose", action="store_true")
     ap.add_argument("--tag", default=None, help="results file suffix (default: backend name)")
     args = ap.parse_args()
     tag = args.tag or args.backend

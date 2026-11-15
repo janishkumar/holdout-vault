@@ -21,6 +21,22 @@ from tasks import Workspace
 MAX_OUTPUT = 6000
 
 
+def cell(code: str) -> str:
+    """Notebook semantics: a trailing bare expression is printed, as agents expect from a code cell."""
+    import ast
+
+    try:
+        tree = ast.parse(code)
+    except SyntaxError:
+        return code
+    if tree.body and isinstance(tree.body[-1], ast.Expr):
+        last = tree.body[-1]
+        call = ast.Call(func=ast.Name("print", ast.Load()), args=[last.value], keywords=[])
+        tree.body[-1] = ast.copy_location(ast.Expr(call), last)
+        return ast.unparse(ast.fix_missing_locations(tree))
+    return code
+
+
 class Env:
     def __init__(self, ws: Workspace):
         self.ws = ws
@@ -75,7 +91,7 @@ class Env:
 
     def run_python(self, code: str, timeout: int = 300) -> str:
         script = self.ws.root / ".agent_run.py"
-        script.write_text(code)
+        script.write_text(cell(code))
         try:
             proc = subprocess.run(
                 [sys.executable, script.name],
@@ -85,7 +101,9 @@ class Env:
                 timeout=timeout,
                 env={**os.environ, "PYTHONWARNINGS": "ignore"},
             )
-            out = (proc.stdout + ("\n" + proc.stderr if proc.returncode else "")).strip() or "(no output)"
+            out = (proc.stdout + ("\n" + proc.stderr if proc.returncode else "")).strip() or (
+                "(ran without output; print values to see them)"
+            )
         except subprocess.TimeoutExpired:
             out = f"error: timed out after {timeout}s"
         finally:

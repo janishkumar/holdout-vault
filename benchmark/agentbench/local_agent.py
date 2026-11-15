@@ -74,7 +74,7 @@ def chat(model: str, messages: list[dict], tools: list[dict], seed: int) -> dict
         "messages": messages,
         "tools": tools,
         "stream": False,
-        "options": {"temperature": 0.2, "seed": seed, "num_ctx": 16384},
+        "options": {"temperature": 0.2, "seed": seed, "num_ctx": 8192},
     }
     req = urllib.request.Request(OLLAMA, data=json.dumps(body).encode(), headers={"Content-Type": "application/json"})
     with urllib.request.urlopen(req, timeout=600) as resp:
@@ -113,7 +113,7 @@ def dispatch(env: Env, name: str, args: dict[str, Any]) -> str:
     return f"error: unknown tool {name}"
 
 
-def run(env: Env, model: str, max_steps: int = 30) -> dict[str, Any]:
+def run(env: Env, model: str, max_steps: int = 30, verbose: bool = False) -> dict[str, Any]:
     task = env.ws.task
     tools = BASE_TOOLS + (VAULT_TOOLS if task.arm == "vault" else [])
     messages: list[dict[str, Any]] = [
@@ -155,5 +155,7 @@ def run(env: Env, model: str, max_steps: int = 30) -> dict[str, Any]:
                 finished = True
                 break
             result = dispatch(env, name, args)
-            messages.append({"role": "tool", "content": result[:4000], "tool_name": name})
+            if verbose:
+                print(f"  step {steps}: {name} -> {result[:100]!r}", flush=True)
+            messages.append({"role": "tool", "content": result[:2500], "tool_name": name})
     return {"agent_steps": steps, "finished": finished}
