@@ -116,7 +116,7 @@ Ports: 7341 (vault API, loopback only) and 7342 (front door Streamable HTTP when
 **Dataset registration** (`holdout-vault register`):
 - Inputs: train split, test split, target column, optional id, time and group columns, metric list, optional custom scorer file.
 - Each split is hashed (SHA-256 over a canonical row serialisation, plus file hash).
-- Canary rows (default 1% of test, min 3, max 50) are synthesised from the train distribution with a marker pattern and random labels, and added to the test features. Their labels are stored only in the vault and excluded from reported metrics.
+- Canary rows (1% of test, min 20, max 200) are synthesised column by column from the train split, so each looks plausible but carries no joint signal, and get uniformly random labels. They are shuffled into the exported test features with ids that blend in. Their labels are stored only in the vault and excluded from reported metrics. Twenty is the floor because an honest binary model matches 20 random labels perfectly with probability about 1 in a million, while 3 canaries could never reach significance.
 - Exports for the agent: train split and test features (without labels, with canaries). Labels and the scorer stay in the vault.
 - Scorer: built-in metrics (accuracy, balanced accuracy, F1, ROC AUC, log loss, RMSE, MAE, R²) or a custom Python scorer file. The scorer hash (file plus the vault's metric code) is pinned at registration.
 
