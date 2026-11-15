@@ -8,12 +8,15 @@ grants are human-only CLI commands. Going over budget asks the human through a m
 # No `from __future__ import annotations`: the SDK evaluates tool signatures at runtime, and the
 # resolver referenced in the tools' annotations is a local closure.
 import hashlib
+import json
 import threading
 from collections.abc import Callable
 from pathlib import Path
 from typing import Annotated, Any
 
 import pandas as pd
+from mcp.server.apps import Apps
+from mcp.server.caching import CacheHint
 from mcp.server.elicitation import AcceptedElicitation, ElicitationResult
 from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.resolve import Elicit, Resolve
@@ -27,10 +30,12 @@ from holdout_vault.core.hashing import file_sha256
 from holdout_vault.core.provenance import collect_stamp
 from holdout_vault.core.registry import read_table
 from holdout_vault.core.vault import Approval, Mode, Vault
+from holdout_vault.mcp.dashboard import DASHBOARD_HTML, DASHBOARD_URI, dashboard_data
 from holdout_vault.mcp.models import (
     ApproveReveal,
     ClaimModel,
     ClaimReport,
+    Dashboard,
     FindingModel,
     LeakageReport,
     ScoreVerdict,
@@ -97,7 +102,40 @@ def build_server(
             return False
 
     tasks = TasksExtension(runners, eligible=budget_left)
-    mcp = MCPServer("holdout-vault", instructions=INSTRUCTIONS, extensions=[tasks])
+    apps = Apps()
+
+    def current_findings() -> list[dict[str, Any]]:
+        if repo_dir is None:
+            return []
+        out: list[dict[str, Any]] = []
+        for d in vault.status().get("datasets", []):
+            try:
+                out.extend(f.to_dict() for f in full_checks(vault, d["name"], repo_dir).findings)
+            except Exception:
+                continue
+        return out
+
+    @apps.tool(resource_uri=DASHBOARD_URI, name="dashboard", title="Vault dashboard")
+    def dashboard() -> Dashboard:
+        """Budget, ledger, recent sealed scores, refusals, workspace findings, and the gap between the
+        agent's own numbers and the sealed scores. Renders as an MCP App where supported; the `summary`
+        field carries the same information as text. Free."""
+        return Dashboard(**dashboard_data(vault, repo_dir, current_findings()))
+
+    apps.add_html_resource(DASHBOARD_URI, DASHBOARD_HTML, name="holdout-vault dashboard")
+
+    mcp = MCPServer(
+        "holdout-vault",
+        instructions=INSTRUCTIONS,
+        extensions=[tasks, apps],
+        cache_hints={
+            # ledger reads change only when a score lands; tool and resource lists never change at runtime
+            "resources/read": CacheHint(ttl_ms=5_000),
+            "tools/list": CacheHint(ttl_ms=3_600_000),
+            "resources/list": CacheHint(ttl_ms=3_600_000),
+            "resources/templates/list": CacheHint(ttl_ms=3_600_000),
+        },
+    )
     mcp.tasks = tasks  # type: ignore[attr-defined]
 
     def resolve_path(p: str) -> Path:
@@ -336,6 +374,56 @@ def build_server(
             records=report.records,
             claims=[ClaimModel(**r.to_dict()) for r in report.results],
         )
+
+    def check_project(name: str) -> None:
+        if name != project:
+            raise ValueError(f"this server serves project {project!r}, not {name!r}")
+
+    def entry(seq: str) -> dict[str, Any]:
+        found = [e for e in vault.ledger_entries() if str(e["seq"]) == str(seq)]
+        if not found:
+            raise ValueError(f"ledger entry {seq} does not exist")
+        return found[0]
+
+    @mcp.resource("ledger://{project_name}/entries", name="ledger", mime_type="application/json")
+    def ledger_resource(project_name: str) -> str:
+        """Every ledger entry, oldest first. Canary identities are never in the ledger."""
+        check_project(project_name)
+        return json.dumps(vault.ledger_entries())
+
+    @mcp.resource("ledger://{project_name}/entry/{seq}", name="ledger-entry", mime_type="application/json")
+    def ledger_entry_resource(project_name: str, seq: str) -> str:
+        """One ledger entry by sequence number."""
+        check_project(project_name)
+        return json.dumps(entry(seq))
+
+    @mcp.resource("provenance://{project_name}/{seq}", name="provenance", mime_type="application/json")
+    def provenance_resource(project_name: str, seq: str) -> str:
+        """Provenance of one sealed score: its stamp, entry hash, and whether the chain verifies."""
+        check_project(project_name)
+        e = entry(seq)
+        if e["kind"] not in ("score", "evaluate"):
+            raise ValueError(f"ledger entry {seq} is a {e['kind']} entry, not a score")
+        st = vault.status()
+        return json.dumps(
+            {
+                "seq": e["seq"],
+                "kind": e["kind"],
+                "dataset": e["payload"].get("dataset"),
+                "metrics": e["payload"].get("metrics"),
+                "stamp": e["payload"].get("stamp"),
+                "entry_hash": e["hash"],
+                "prev_hash": e["prev_hash"],
+                "ledger_ok": st["ledger_ok"],
+                "ledger_head": st["ledger_head"],
+            }
+        )
+
+    @mcp.resource("findings://{project_name}/latest", name="findings", mime_type="application/json")
+    def findings_resource(project_name: str) -> str:
+        """Current integrity findings for the workspace, for every registered dataset."""
+        check_project(project_name)
+        return json.dumps(current_findings())
 
     @mcp.tool(title="Vault status")
     def vault_status() -> VaultStatus:

@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>holdout-vault</title>
+<style>
+:root{--bg:#fff;--fg:#1d2433;--muted:#5f6b7a;--line:#e3e7ee;--ok:#1a7f4b;--bad:#b42318;--warn:#a15c00;--accent:#2f5bd3}
+@media (prefers-color-scheme: dark){:root{--bg:#14171c;--fg:#e6e9ef;--muted:#9aa4b2;--line:#2a2f38;--ok:#4cc38a;--bad:#ff7b72;--warn:#e3a33b;--accent:#7aa2ff}}
+*{box-sizing:border-box}body{margin:0;padding:16px;background:var(--bg);color:var(--fg);font:14px/1.45 system-ui,sans-serif}
+h1{font-size:17px;margin:0 0 4px}h2{font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:20px 0 8px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+.card{border:1px solid var(--line);border-radius:8px;padding:10px}.card b{display:block;font-size:20px}
+.bar{height:6px;background:var(--line);border-radius:3px;margin-top:6px;overflow:hidden}.bar i{display:block;height:100%;background:var(--accent)}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}th,td{text-align:left;padding:5px 6px;border-bottom:1px solid var(--line)}
+th{color:var(--muted);font-weight:500}.ok{color:var(--ok)}.bad{color:var(--bad)}.warn{color:var(--warn)}.muted{color:var(--muted)}
+.wrap{overflow-x:auto}code{font-size:12px}
+</style></head><body>
+<h1 id="title">holdout-vault</h1><div class="muted" id="sub">Waiting for data from the host.</div>
+<div class="cards" id="cards"></div>
+<h2>Own measurement vs sealed score</h2><div class="wrap"><table id="gaps"></table></div>
+<h2>Sealed scores</h2><div class="wrap"><table id="scores"></table></div>
+<h2>Workspace findings</h2><div class="wrap"><table id="findings"></table></div>
+<h2>Refused submissions</h2><div class="wrap"><table id="refusals"></table></div>
+<script>
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const f4 = v => typeof v === "number" ? v.toFixed(4) : "";
+function table(id, head, rows, empty) {
+  const el = document.getElementById(id);
+  el.innerHTML = rows.length ? "<tr>" + head.map(h => "<th>" + h + "</th>").join("") + "</tr>" +
+    rows.map(r => "<tr>" + r.map(c => "<td>" + c + "</td>").join("") + "</tr>").join("")
+    : "<tr><td class=muted>" + empty + "</td></tr>";
+}
+function render(d) {
+  document.getElementById("title").textContent = "holdout-vault: " + d.project;
+  document.getElementById("sub").innerHTML = esc(d.mode) + " mode, ledger " +
+    (d.ledger_ok ? "<span class=ok>verifies</span>" : "<span class=bad>BROKEN</span>") +
+    ", head <code>" + esc(String(d.ledger_head || "").slice(0, 12)) + "</code>";
+  const used = d.budget ? Math.min(100, 100 * d.spent / d.budget) : 0;
+  document.getElementById("cards").innerHTML =
+    `<div class=card>Reveals left<b>${d.remaining}</b><div class=bar><i style="width:${used}%"></i></div></div>` +
+    `<div class=card>Used<b>${d.spent} / ${d.budget}</b></div>` +
+    `<div class=card>Ledger entries<b>${d.ledger_entries}</b></div>` +
+    `<div class=card>Refused<b>${d.refusals.length}</b></div>`;
+  table("gaps", ["Dataset", "Metric", "Own", "Source", "Sealed", "Optimism"], d.gaps.map(g => [esc(g.dataset),
+    esc(g.metric), f4(g.own), esc(g.own_source), f4(g.sealed) + " <span class=muted>#" + g.sealed_entry + "</span>",
+    `<span class=${g.optimism > 0.02 ? "warn" : "muted"}>${g.optimism >= 0 ? "+" : ""}${f4(g.optimism)}</span>`]),
+    "No run records of the agent's own to compare.");
+  table("scores", ["#", "Kind", "Dataset", "Metrics", "Commit", "Warnings"], d.scores.slice().reverse().map(s => [
+    s.seq, esc(s.kind), esc(s.dataset), esc(Object.entries(s.metrics || {}).map(([k, v]) => k + " " + f4(v)).join(", ")),
+    "<code>" + esc(s.commit || "") + "</code>", s.findings.length ? "<span class=warn>" + esc(s.findings.join(", ")) + "</span>" : ""]),
+    "No sealed scores yet.");
+  table("findings", ["Code", "Severity", "Finding", "Where"], d.findings.map(f => [esc(f.code),
+    `<span class=${f.severity === "block" ? "bad" : f.severity === "warn" ? "warn" : "muted"}>${esc(f.severity)}</span>`,
+    esc(f.title), esc((f.location || {}).file ? f.location.file + ":" + (f.location.line ?? "") : "")]),
+    "No findings.");
+  table("refusals", ["#", "Dataset", "Why"], d.refusals.slice().reverse().map(r => [r.seq, esc(r.dataset), esc(r.reason)]),
+    "None.");
+}
+let nextId = 1;
+const send = msg => window.parent.postMessage(msg, "*");
+window.addEventListener("message", ev => {
+  const m = ev.data;
+  if (!m || m.jsonrpc !== "2.0") return;
+  if (m.id === 1 && m.result) send({jsonrpc: "2.0", method: "ui/notifications/initialized", params: {}});
+  if (m.method === "ui/notifications/tool-result") {
+    const r = m.params || {};
+    const d = r.structuredContent || (r.result && r.result.structuredContent);
+    if (d) render(d);
+  }
+});
+send({jsonrpc: "2.0", id: nextId++, method: "ui/initialize",
+      params: {appInfo: {name: "holdout-vault dashboard", version: "1"}, appCapabilities: {}, protocolVersion: "2026-01-26"}});
+</script></body></html>

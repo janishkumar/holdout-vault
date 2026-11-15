@@ -86,3 +86,19 @@ class LeakageReport(BaseModel):
     tables_scanned: int = Field(description="Data files compared against the hidden canary labels")
     unparsed: list[str] = Field(default_factory=list, description="Files that could not be parsed")
     findings: list[FindingModel] = Field(default_factory=list)
+
+
+class Dashboard(BaseModel):
+    summary: str = Field(description="Plain-text version of everything below, for clients without Apps")
+    project: str
+    mode: Literal["watch", "sealed"]
+    budget: int
+    spent: int
+    remaining: int
+    ledger_ok: bool
+    ledger_entries: int
+    ledger_head: str | None
+    scores: list[dict[str, Any]] = Field(description="Recent sealed scores, oldest first")
+    refusals: list[dict[str, Any]]
+    findings: list[dict[str, Any]] = Field(description="Current workspace findings")
+    gaps: list[dict[str, Any]] = Field(description="The agent's own best number vs the latest sealed score")
