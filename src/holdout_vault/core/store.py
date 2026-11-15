@@ -6,6 +6,7 @@
     projects/<project>/ledger.jsonl
     projects/<project>/datasets/<name>/record.json
     projects/<project>/datasets/<name>/labels.parquet     # id, label, is_canary
+    projects/<project>/datasets/<name>/test_features.parquet  # what the agent and runner see
     projects/<project>/datasets/<name>/scorer.py          # only for custom scorers
 """
 
@@ -123,6 +124,12 @@ class Store:
     def read_canaries(self, name: str) -> pd.DataFrame:
         labels = self.read_labels(name)
         return labels[labels["is_canary"]].reset_index(drop=True)
+
+    def features_path(self, name: str) -> Path:
+        return self.dataset_dir(name) / "test_features.parquet"
+
+    def read_features(self, name: str) -> pd.DataFrame:
+        return pd.read_parquet(self.features_path(name))
 
     def custom_scorer_path(self, name: str) -> Path:
         return self.dataset_dir(name) / "scorer.py"

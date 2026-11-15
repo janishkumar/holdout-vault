@@ -13,9 +13,7 @@ LOCKFILES = ("uv.lock", "poetry.lock", "requirements.lock", "requirements.txt")
 
 def _git(repo: Path, *args: str) -> str | None:
     try:
-        out = subprocess.run(
-            ["git", "-C", str(repo), *args], capture_output=True, text=True, timeout=10, check=True
-        )
+        out = subprocess.run(["git", "-C", str(repo), *args], capture_output=True, text=True, timeout=10, check=True)
     except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
         return None
     return out.stdout

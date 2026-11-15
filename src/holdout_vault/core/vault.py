@@ -108,9 +108,7 @@ class Vault:
         try:
             return self.store.read_record(dataset)
         except (KeyError, ValueError) as exc:
-            raise ValidationError(
-                f"dataset {dataset!r} is not registered in project {self.store.project!r}"
-            ) from exc
+            raise ValidationError(f"dataset {dataset!r} is not registered in project {self.store.project!r}") from exc
 
     def integrity_findings(self, rec: DatasetRecord) -> list[Finding]:
         found: list[Finding] = []
@@ -187,9 +185,7 @@ class Vault:
         got = set(ids)
         missing, unknown = expected - got, got - expected
         if missing:
-            raise ValidationError(
-                f"{len(missing)} test id(s) missing from predictions, e.g. {sorted(missing)[0]}"
-            )
+            raise ValidationError(f"{len(missing)} test id(s) missing from predictions, e.g. {sorted(missing)[0]}")
         if unknown:
             raise ValidationError(f"{len(unknown)} unknown id(s) in predictions, e.g. {sorted(unknown)[0]}")
         if preds["prediction"].isna().any():
@@ -247,9 +243,7 @@ class Vault:
         except (TypeError, ValueError) as exc:
             raise ValidationError(f"predictions could not be scored: {exc}") from exc
 
-        can_pred = (
-            _label_str(canaries["prediction"]) if rec.task == "classification" else canaries["prediction"]
-        )
+        can_pred = _label_str(canaries["prediction"]) if rec.task == "classification" else canaries["prediction"]
         cheat = canary_agreement(rec.task, canaries["label"], can_pred, len(rec.classes))
         if cheat is not None:
             ledger.append("refused", {"dataset": dataset, "findings": [cheat.to_dict()]})
@@ -289,24 +283,29 @@ class Vault:
             findings=[f for f in findings if f.severity != "block"],
         )
 
+    # agent-visible dataset info -------------------------------------------------------------
+    def dataset_info(self, dataset: str) -> dict[str, Any]:
+        r = self._record(dataset)
+        return {
+            "name": r.name,
+            "task": r.task,
+            "metrics": r.metrics,
+            "id_col": r.id_col,
+            "n_test_rows": r.n_test + r.n_canaries,
+            "export_dir": r.export_dir,
+            "scorer": r.scorer_kind,
+        }
+
+    def test_features(self, dataset: str) -> pd.DataFrame:
+        """The authoritative test features (with canaries, without labels) for the runner."""
+        self._record(dataset)
+        return self.store.read_features(dataset)
+
     # status -----------------------------------------------------------------------------------
     def status(self) -> dict[str, Any]:
         state = self.budget_state()
         check = self.verify_ledger()
-        datasets = []
-        for name in self.store.datasets():
-            r = self.store.read_record(name)
-            datasets.append(
-                {
-                    "name": r.name,
-                    "task": r.task,
-                    "metrics": r.metrics,
-                    "id_col": r.id_col,
-                    "n_test_rows": r.n_test + r.n_canaries,
-                    "export_dir": r.export_dir,
-                    "scorer": r.scorer_kind,
-                }
-            )
+        datasets = [self.dataset_info(name) for name in self.store.datasets()]
         return {
             "project": self.store.project,
             "mode": self.mode,

@@ -41,11 +41,7 @@ def read_table(path: str | Path) -> pd.DataFrame:
 
 
 def infer_task(y: pd.Series) -> str:
-    if (
-        pd.api.types.is_bool_dtype(y)
-        or pd.api.types.is_object_dtype(y)
-        or isinstance(y.dtype, pd.CategoricalDtype)
-    ):
+    if pd.api.types.is_bool_dtype(y) or pd.api.types.is_object_dtype(y) or isinstance(y.dtype, pd.CategoricalDtype):
         return "classification"
     if pd.api.types.is_integer_dtype(y) and y.nunique() <= MAX_CLASSES_FOR_INT_TARGET:
         return "classification"
@@ -84,9 +80,7 @@ def register_dataset(
         raise RegistrationError(str(exc)) from exc
     export_dir = Path(export_dir)
     if _is_inside(export_dir, store.home):
-        raise RegistrationError(
-            "export_dir is inside the vault store; export to the agent's workspace instead"
-        )
+        raise RegistrationError("export_dir is inside the vault store; export to the agent's workspace instead")
     if store.has_dataset(name) and not replace:
         raise RegistrationError(f"dataset {name!r} is already registered; pass replace=True to re-register")
 
@@ -138,9 +132,7 @@ def register_dataset(
         can_ids: list = [0] * n_can
     else:
         real_ids = test[id_col].reset_index(drop=True)
-        can_ids = new_ids(
-            pd.concat([real_ids, train[id_col]]) if id_col in train.columns else real_ids, n_can, rng
-        )
+        can_ids = new_ids(pd.concat([real_ids, train[id_col]]) if id_col in train.columns else real_ids, n_can, rng)
 
     combined = pd.concat([real.reset_index(drop=True), can_feats], ignore_index=True)
     ids = pd.concat([real_ids, pd.Series(can_ids)], ignore_index=True)
@@ -164,6 +156,7 @@ def register_dataset(
     if task == "regression":
         sealed["label"] = pd.to_numeric(labels).to_numpy(dtype=float)
     sealed.to_parquet(store.labels_path(name), index=False)
+    combined.to_parquet(store.features_path(name), index=False)
 
     if scorer_path is not None:
         load_custom_scorer(scorer_path)  # fail early on a broken scorer

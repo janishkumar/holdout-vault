@@ -63,9 +63,7 @@ def test_auc_without_proba_is_an_error():
 
 def test_proba_out_of_range_is_an_error():
     with pytest.raises(MetricError, match=r"\[0, 1\]"):
-        compute_metrics(
-            ["log_loss"], pd.Series([0, 1]), pd.DataFrame({"prediction": [0, 1], "proba": [0.2, 1.4]})
-        )
+        compute_metrics(["log_loss"], pd.Series([0, 1]), pd.DataFrame({"prediction": [0, 1], "proba": [0.2, 1.4]}))
 
 
 def test_unknown_metric():

@@ -179,9 +179,7 @@ def test_watch_mode_detects_test_file_change(registered, tmp_path, split_files):
 def test_sealed_mode_does_not_watch_host_test_file(registered, tmp_path, split_files):
     _, test = split_files
     test.unlink()
-    result = Vault(registered.home, "demo", mode="sealed").score(
-        "churn", honest_predictions(registered, tmp_path)
-    )
+    result = Vault(registered.home, "demo", mode="sealed").score("churn", honest_predictions(registered, tmp_path))
     assert result.mode == "sealed"
 
 

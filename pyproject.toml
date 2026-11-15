@@ -29,7 +29,7 @@ build-backend = "hatchling.build"
 packages = ["src/holdout_vault"]
 
 [tool.ruff]
-line-length = 110
+line-length = 120
 src = ["src", "tests"]
 
 [tool.ruff.lint]

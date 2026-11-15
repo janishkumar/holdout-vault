@@ -22,9 +22,7 @@ class BudgetExhausted(VaultError):
 
     def __init__(self, dataset: str, budget: int, spent: int):
         self.dataset, self.budget, self.spent = dataset, budget, spent
-        super().__init__(
-            f"reveal budget exhausted: {spent} of {budget} used. A human must approve another reveal."
-        )
+        super().__init__(f"reveal budget exhausted: {spent} of {budget} used. A human must approve another reveal.")
 
 
 class TamperDetected(VaultError):

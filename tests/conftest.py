@@ -16,9 +16,7 @@ def make_classification(n: int = 600, seed: int = 0) -> pd.DataFrame:
     cat = rng.choice(["red", "green", "blue"], size=n)
     logit = 1.5 * x1 - x2 + (cat == "red") * 0.5
     y = (rng.random(n) < 1 / (1 + np.exp(-logit))).astype(int)
-    return pd.DataFrame(
-        {"customer_id": np.arange(1000, 1000 + n), "x1": x1, "x2": x2, "colour": cat, "churn": y}
-    )
+    return pd.DataFrame({"customer_id": np.arange(1000, 1000 + n), "x1": x1, "x2": x2, "colour": cat, "churn": y})
 
 
 @pytest.fixture

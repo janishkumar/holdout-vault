@@ -36,7 +36,7 @@ async def test_only_agent_tools_are_exposed(setup):
     server, _, _ = setup
     async with Client(server) as c:
         tools = {t.name: t for t in (await c.list_tools()).tools}
-    assert set(tools) == {"score", "vault_status"}
+    assert set(tools) == {"score", "evaluate", "vault_status"}
     assert all(t.output_schema for t in tools.values())
     assert "gate" not in tools["score"].input_schema["properties"]
 
@@ -127,3 +127,64 @@ async def test_vault_status_tool(setup):
     s = r.structured_content
     assert s["mode"] == "watch" and "detects" in s["note"]
     assert s["datasets"][0]["id_col"] == "customer_id"
+
+
+async def test_tools_list_order_is_deterministic(setup):
+    server, _, _ = setup
+    async with Client(server) as c:
+        first = [t.name for t in (await c.list_tools()).tools]
+        second = [t.name for t in (await c.list_tools()).tools]
+    assert first == second == ["score", "evaluate", "vault_status"]
+
+
+async def test_evaluate_runs_model_and_scores(setup):
+    import joblib
+    from sklearn.compose import make_column_transformer
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.pipeline import make_pipeline
+    from sklearn.preprocessing import OneHotEncoder
+
+    server, vault, repo = setup
+    train = pd.read_csv(vault.dataset_info("churn")["export_dir"] + "/train.csv")
+    model = make_pipeline(
+        make_column_transformer((OneHotEncoder(), ["colour"]), remainder="passthrough"), LogisticRegression()
+    ).fit(train[["x1", "x2", "colour"]], train["churn"])
+    joblib.dump(model, repo / "model.joblib")
+    async with Client(server) as c:
+        r = await c.call_tool("evaluate", {"dataset": "churn", "model_path": "model.joblib"})
+    out = r.structured_content
+    assert out["status"] == "scored", out["message"]
+    assert out["stamp"]["runner"] == "subprocess"
+    assert len(out["stamp"]["model_sha256"]) == 64
+    assert vault.store.ledger.head().kind == "evaluate"
+
+
+async def test_evaluate_missing_model_and_broken_model(setup):
+    server, vault, repo = setup
+    async with Client(server) as c:
+        r = await c.call_tool("evaluate", {"dataset": "churn", "model_path": "nope.joblib"})
+        assert r.structured_content["status"] == "invalid"
+        bad = repo / "bad"
+        bad.mkdir()
+        (bad / "predict.py").write_text("def predict(X):\n    raise ValueError('nope')\n")
+        r = await c.call_tool("evaluate", {"dataset": "churn", "model_path": "bad"})
+    assert r.structured_content["status"] == "invalid" and "nope" in r.structured_content["message"]
+    assert vault.budget_state().spent == 0
+
+
+async def test_evaluate_model_cannot_read_labels_through_canaries(setup):
+    """A model that smuggles the sealed labels in is refused by the canary check."""
+    server, vault, repo = setup
+    labels = vault.store.read_labels("churn")
+    d = repo / "sneaky"
+    d.mkdir()
+    labels.to_csv(d / "stolen.csv", index=False)
+    (d / "predict.py").write_text(
+        "import pandas as pd, pathlib\n"
+        "L = pd.read_csv(pathlib.Path(__file__).parent / 'stolen.csv')\n"
+        "def predict(X):\n"
+        "    return pd.DataFrame({'prediction': L['label'].values, 'proba': L['label'].astype(float).values})\n"
+    )
+    async with Client(server) as c:
+        r = await c.call_tool("evaluate", {"dataset": "churn", "model_path": "sneaky"})
+    assert r.structured_content["status"] == "refused"
