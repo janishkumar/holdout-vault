@@ -73,3 +73,24 @@ def git_repo(tmp_path):
     git("add", "-A")
     git("commit", "-qm", "init")
     return repo
+
+
+def honest_predictions(export_dir) -> pd.DataFrame:
+    """Fit a plain logistic regression on the exported files, as an honest agent would."""
+    from pathlib import Path
+
+    from sklearn.linear_model import LogisticRegression
+
+    out = Path(export_dir)
+    train = pd.read_csv(out / "train.csv")
+    test = pd.read_csv(out / "test_features.csv")
+    X = pd.get_dummies(train[["x1", "x2", "colour"]], dtype=float)
+    Xt = pd.get_dummies(test[["x1", "x2", "colour"]], dtype=float).reindex(columns=X.columns, fill_value=0)
+    model = LogisticRegression().fit(X, train["churn"])
+    return pd.DataFrame(
+        {
+            "customer_id": test["customer_id"],
+            "prediction": model.predict(Xt),
+            "proba": model.predict_proba(Xt)[:, 1],
+        }
+    )
