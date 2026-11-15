@@ -1,0 +1,241 @@
+{
+  "corpus": "claims_blind",
+  "reports": 40,
+  "gold_claims": 160,
+  "predicted_claims": 151,
+  "extraction_precision": 1.0,
+  "extraction_recall": 0.944,
+  "label_accuracy_on_matched": 0.967,
+  "end_to_end_correct": 146,
+  "unsupported": {
+    "tp": 90,
+    "fp": 0,
+    "fn": 5,
+    "precision": 1.0,
+    "precision_ci95": [
+      0.959,
+      1.0
+    ],
+    "recall": 0.947,
+    "recall_ci95": [
+      0.883,
+      0.977
+    ]
+  },
+  "per_label": {
+    "traced": {
+      "tp": 59,
+      "fp": 2,
+      "fn": 6,
+      "precision": 0.967,
+      "recall": 0.908,
+      "recall_ci95": [
+        0.813,
+        0.957
+      ]
+    },
+    "mismatched": {
+      "tp": 10,
+      "fp": 0,
+      "fn": 5,
+      "precision": 1.0,
+      "recall": 0.667,
+      "recall_ci95": [
+        0.417,
+        0.848
+      ]
+    },
+    "orphaned": {
+      "tp": 26,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "recall_ci95": [
+        0.871,
+        1.0
+      ]
+    },
+    "cherry-picked": {
+      "tp": 15,
+      "fp": 3,
+      "fn": 1,
+      "precision": 0.833,
+      "recall": 0.938,
+      "recall_ci95": [
+        0.717,
+        0.989
+      ]
+    },
+    "stale": {
+      "tp": 13,
+      "fp": 0,
+      "fn": 1,
+      "precision": 1.0,
+      "recall": 0.929,
+      "recall_ci95": [
+        0.685,
+        0.987
+      ]
+    },
+    "untrusted-source": {
+      "tp": 23,
+      "fp": 0,
+      "fn": 1,
+      "precision": 1.0,
+      "recall": 0.958,
+      "recall_ci95": [
+        0.798,
+        0.993
+      ]
+    }
+  },
+  "errors": [
+    {
+      "case": "case09.md",
+      "gold": {
+        "metric": "roc_auc",
+        "shown": "0.9012",
+        "label": "mismatched"
+      },
+      "predicted": {
+        "metric": "roc_auc",
+        "shown": "0.9012",
+        "label": "cherry-picked"
+      }
+    },
+    {
+      "case": "case09.md",
+      "gold": {
+        "metric": "accuracy",
+        "shown": "0.8125",
+        "label": "mismatched"
+      },
+      "predicted": {
+        "metric": "accuracy",
+        "shown": "0.8125",
+        "label": "traced"
+      }
+    },
+    {
+      "case": "case18.md",
+      "gold": {
+        "metric": "accuracy",
+        "shown": "0.8203",
+        "label": "traced"
+      },
+      "predicted": null
+    },
+    {
+      "case": "case22.md",
+      "gold": {
+        "metric": "roc_auc",
+        "shown": "0.9012",
+        "label": "cherry-picked"
+      },
+      "predicted": null
+    },
+    {
+      "case": "case24.md",
+      "gold": {
+        "metric": "accuracy",
+        "shown": "0.8203",
+        "label": "traced"
+      },
+      "predicted": null
+    },
+    {
+      "case": "case25.md",
+      "gold": {
+        "metric": "rmse",
+        "shown": "11.20",
+        "label": "untrusted-source"
+      },
+      "predicted": null
+    },
+    {
+      "case": "case26.md",
+      "gold": {
+        "metric": "f1",
+        "shown": "66.20%",
+        "label": "mismatched"
+      },
+      "predicted": {
+        "metric": "f1",
+        "shown": "66.20%",
+        "label": "traced"
+      }
+    },
+    {
+      "case": "case26.md",
+      "gold": {
+        "metric": "accuracy",
+        "shown": "0.8411",
+        "label": "mismatched"
+      },
+      "predicted": {
+        "metric": "accuracy",
+        "shown": "0.8411",
+        "label": "cherry-picked"
+      }
+    },
+    {
+      "case": "case30.md",
+      "gold": {
+        "metric": "log_loss",
+        "shown": "0.3011",
+        "label": "traced"
+      },
+      "predicted": null
+    },
+    {
+      "case": "case31.md",
+      "gold": {
+        "metric": "accuracy",
+        "shown": "83.50%",
+        "label": "stale"
+      },
+      "predicted": null
+    },
+    {
+      "case": "case31.md",
+      "gold": {
+        "metric": "f1",
+        "shown": "0.671",
+        "label": "traced"
+      },
+      "predicted": null
+    },
+    {
+      "case": "case35.md",
+      "gold": {
+        "metric": "roc_auc",
+        "shown": "0.8911",
+        "label": "traced"
+      },
+      "predicted": null
+    },
+    {
+      "case": "case35.md",
+      "gold": {
+        "metric": "roc_auc",
+        "shown": "0.9012",
+        "label": "traced"
+      },
+      "predicted": null
+    },
+    {
+      "case": "case40.md",
+      "gold": {
+        "metric": "roc_auc",
+        "shown": "0.9012",
+        "label": "mismatched"
+      },
+      "predicted": {
+        "metric": "roc_auc",
+        "shown": "0.9012",
+        "label": "cherry-picked"
+      }
+    }
+  ]
+}

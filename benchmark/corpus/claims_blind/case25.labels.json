@@ -1,0 +1,17 @@
+[
+ {
+  "metric": "roc_auc",
+  "shown": "0.931",
+  "label": "untrusted-source"
+ },
+ {
+  "metric": "f1",
+  "shown": "69.9%",
+  "label": "untrusted-source"
+ },
+ {
+  "metric": "rmse",
+  "shown": "11.20",
+  "label": "untrusted-source"
+ }
+]

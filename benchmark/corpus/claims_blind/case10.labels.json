@@ -1,0 +1,22 @@
+[
+ {
+  "metric": "roc_auc",
+  "shown": "0.9310",
+  "label": "untrusted-source"
+ },
+ {
+  "metric": "f1",
+  "shown": "0.6990",
+  "label": "untrusted-source"
+ },
+ {
+  "metric": "rmse",
+  "shown": "11.20",
+  "label": "untrusted-source"
+ },
+ {
+  "metric": "r2",
+  "shown": "0.7590",
+  "label": "untrusted-source"
+ }
+]

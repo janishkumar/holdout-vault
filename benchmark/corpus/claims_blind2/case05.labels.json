@@ -1,0 +1,32 @@
+[
+ {
+  "metric": "f1",
+  "shown": "0.6710",
+  "label": "traced"
+ },
+ {
+  "metric": "log_loss",
+  "shown": "0.3011",
+  "label": "traced"
+ },
+ {
+  "metric": "f1",
+  "shown": "0.6620",
+  "label": "traced"
+ },
+ {
+  "metric": "roc_auc",
+  "shown": "0.9310",
+  "label": "untrusted-source"
+ },
+ {
+  "metric": "f1",
+  "shown": "0.6990",
+  "label": "untrusted-source"
+ },
+ {
+  "metric": "balanced_accuracy",
+  "shown": "0.7650",
+  "label": "orphaned"
+ }
+]

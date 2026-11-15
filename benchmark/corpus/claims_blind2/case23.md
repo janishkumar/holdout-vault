@@ -1,0 +1,1 @@
+Our final write-up says the churn classifier hits 0.9230 accuracy and 0.9310 AUC, with F1 of 0.6990 for the fraud screen, though the sealed price figures (12.41 RMSE, 9.20 MAE) tell a more modest story, and none of it was run before 2026-10-01.

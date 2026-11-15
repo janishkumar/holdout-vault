@@ -1,0 +1,32 @@
+[
+ {
+  "metric": "accuracy",
+  "shown": "0.8125",
+  "label": "traced"
+ },
+ {
+  "metric": "f1",
+  "shown": "0.6710",
+  "label": "traced"
+ },
+ {
+  "metric": "rmse",
+  "shown": "12.41",
+  "label": "traced"
+ },
+ {
+  "metric": "roc_auc",
+  "shown": "0.9420",
+  "label": "untrusted-source"
+ },
+ {
+  "metric": "recall",
+  "shown": "0.88",
+  "label": "orphaned"
+ },
+ {
+  "metric": "precision",
+  "shown": "0.91",
+  "label": "orphaned"
+ }
+]

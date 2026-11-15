@@ -1,0 +1,17 @@
+[
+ {
+  "metric": "accuracy",
+  "shown": "0.7900",
+  "label": "untrusted-source"
+ },
+ {
+  "metric": "log_loss",
+  "shown": "0.2890",
+  "label": "untrusted-source"
+ },
+ {
+  "metric": "accuracy",
+  "shown": "0.8710",
+  "label": "untrusted-source"
+ }
+]

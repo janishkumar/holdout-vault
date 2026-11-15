@@ -1,0 +1,27 @@
+[
+ {
+  "metric": "rmse",
+  "shown": "11.20",
+  "label": "untrusted-source"
+ },
+ {
+  "metric": "r2",
+  "shown": "0.7590",
+  "label": "untrusted-source"
+ },
+ {
+  "metric": "rmse",
+  "shown": "11.20",
+  "label": "mismatched"
+ },
+ {
+  "metric": "r2",
+  "shown": "0.7120",
+  "label": "traced"
+ },
+ {
+  "metric": "accuracy",
+  "shown": "0.8350",
+  "label": "stale"
+ }
+]

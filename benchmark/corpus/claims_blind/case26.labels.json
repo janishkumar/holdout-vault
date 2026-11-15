@@ -1,0 +1,22 @@
+[
+ {
+  "metric": "f1",
+  "shown": "66.20%",
+  "label": "mismatched"
+ },
+ {
+  "metric": "log_loss",
+  "shown": "0.2890",
+  "label": "untrusted-source"
+ },
+ {
+  "metric": "roc_auc",
+  "shown": "0.9420",
+  "label": "untrusted-source"
+ },
+ {
+  "metric": "accuracy",
+  "shown": "0.8411",
+  "label": "mismatched"
+ }
+]

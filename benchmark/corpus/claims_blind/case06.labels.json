@@ -1,0 +1,22 @@
+[
+ {
+  "metric": "rmse",
+  "shown": "12.41",
+  "label": "traced"
+ },
+ {
+  "metric": "mae",
+  "shown": "8.93",
+  "label": "traced"
+ },
+ {
+  "metric": "r2",
+  "shown": "0.7120",
+  "label": "traced"
+ },
+ {
+  "metric": "r2",
+  "shown": "0.7590",
+  "label": "untrusted-source"
+ }
+]

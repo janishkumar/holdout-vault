@@ -1,0 +1,27 @@
+[
+ {
+  "metric": "accuracy",
+  "shown": "0.8125",
+  "label": "orphaned"
+ },
+ {
+  "metric": "f1",
+  "shown": "0.6620",
+  "label": "traced"
+ },
+ {
+  "metric": "f1",
+  "shown": "0.6620",
+  "label": "mismatched"
+ },
+ {
+  "metric": "log_loss",
+  "shown": "0.2890",
+  "label": "untrusted-source"
+ },
+ {
+  "metric": "rmse",
+  "shown": "11.20",
+  "label": "untrusted-source"
+ }
+]

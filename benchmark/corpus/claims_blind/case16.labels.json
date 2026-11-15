@@ -1,0 +1,32 @@
+[
+ {
+  "metric": "f1",
+  "shown": "0.7450",
+  "label": "orphaned"
+ },
+ {
+  "metric": "rmse",
+  "shown": "9.87",
+  "label": "orphaned"
+ },
+ {
+  "metric": "mae",
+  "shown": "6.10",
+  "label": "orphaned"
+ },
+ {
+  "metric": "r2",
+  "shown": "0.8300",
+  "label": "orphaned"
+ },
+ {
+  "metric": "log_loss",
+  "shown": "0.2000",
+  "label": "orphaned"
+ },
+ {
+  "metric": "accuracy",
+  "shown": "0.8350",
+  "label": "stale"
+ }
+]

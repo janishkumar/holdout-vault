@@ -1,0 +1,27 @@
+[
+ {
+  "metric": "recall",
+  "shown": "0.7920",
+  "label": "orphaned"
+ },
+ {
+  "metric": "precision",
+  "shown": "0.6015",
+  "label": "orphaned"
+ },
+ {
+  "metric": "balanced_accuracy",
+  "shown": "0.7766",
+  "label": "orphaned"
+ },
+ {
+  "metric": "accuracy",
+  "shown": "0.8999",
+  "label": "orphaned"
+ },
+ {
+  "metric": "accuracy",
+  "shown": "0.8203",
+  "label": "traced"
+ }
+]

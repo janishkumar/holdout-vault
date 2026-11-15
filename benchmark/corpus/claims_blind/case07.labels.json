@@ -1,0 +1,17 @@
+[
+ {
+  "metric": "accuracy",
+  "shown": "0.8350",
+  "label": "stale"
+ },
+ {
+  "metric": "roc_auc",
+  "shown": "0.8975",
+  "label": "stale"
+ },
+ {
+  "metric": "accuracy",
+  "shown": "0.9234",
+  "label": "orphaned"
+ }
+]

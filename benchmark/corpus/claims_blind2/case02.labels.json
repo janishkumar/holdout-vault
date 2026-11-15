@@ -1,0 +1,22 @@
+[
+ {
+  "metric": "accuracy",
+  "shown": "0.8203",
+  "label": "traced"
+ },
+ {
+  "metric": "roc_auc",
+  "shown": "0.8840",
+  "label": "mismatched"
+ },
+ {
+  "metric": "precision",
+  "shown": "0.7312",
+  "label": "orphaned"
+ },
+ {
+  "metric": "recall",
+  "shown": "0.6840",
+  "label": "orphaned"
+ }
+]

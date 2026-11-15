@@ -169,6 +169,31 @@ def cmd_check(args: argparse.Namespace) -> int:
     return 1 if result.blocking else 0
 
 
+def cmd_audit(args: argparse.Namespace) -> int:
+    from holdout_vault.claims.run import run_audit
+
+    if args.sealed:
+        from holdout_vault.remote import RemoteVault
+
+        vault = RemoteVault.from_config(args.project, args.home)
+        if vault is None:
+            print("error: no sealed vault is running (run `holdout-vault up`)", file=sys.stderr)
+            return 2
+    else:
+        vault = _vault(args)
+    report = run_audit(vault, Path(args.repo), paths=args.paths or None, text=args.text)
+    if args.json:
+        print(json.dumps({"summary": report.summary, "claims": [r.to_dict() for r in report.results]}, indent=2))
+    else:
+        for r in report.results:
+            c = r.claim
+            where = f"{c.file}:{c.line}" + (f" (cell {c.cell})" if c.cell is not None else "")
+            print(f"  [{r.label}] {c.metric} {c.shown}  {where}")
+            print(f"      {r.explanation}")
+        print(report.summary)
+    return 1 if any(r.label not in {"traced", "untrusted-source"} for r in report.results) else 0
+
+
 def cmd_serve(args: argparse.Namespace) -> int:
     from holdout_vault.mcp.server import run
 
@@ -255,6 +280,12 @@ def build_parser() -> argparse.ArgumentParser:
     c.add_argument("--repo", default=".", help="the agent's workspace")
     c.add_argument("paths", nargs="*", help="limit code checks to these files or folders")
     c.add_argument("--json", action="store_true")
+
+    au = add("audit", cmd_audit, "check metric claims in reports against the ledger")
+    au.add_argument("--repo", default=".", help="the agent's workspace")
+    au.add_argument("paths", nargs="*", help="documents or folders to read (default: all in the repo)")
+    au.add_argument("--text", help="audit this text instead of files")
+    au.add_argument("--json", action="store_true")
 
     sv = add("serve", cmd_serve, "run the MCP server (stdio by default)", sealed=False)
     sv.add_argument("--repo", default=".", help="agent repository used for provenance stamps")

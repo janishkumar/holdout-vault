@@ -1,0 +1,1 @@
+This evaluation set was written from the label definitions and WORLD.md only, with no access to the tool's source, tests or benchmark code. It contains 40 reports (case01 to case40) of varied style, each with a labels JSON listing the claims in document order. Label totals: cherry-picked 16, mismatched 15, orphaned 26, stale 14, traced 65, untrusted-source 24.

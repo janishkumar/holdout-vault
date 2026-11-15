@@ -1,0 +1,27 @@
+[
+ {
+  "metric": "balanced_accuracy",
+  "shown": "0.8200",
+  "label": "orphaned"
+ },
+ {
+  "metric": "precision",
+  "shown": "0.7800",
+  "label": "orphaned"
+ },
+ {
+  "metric": "recall",
+  "shown": "0.6900",
+  "label": "orphaned"
+ },
+ {
+  "metric": "accuracy",
+  "shown": "0.8203",
+  "label": "traced"
+ },
+ {
+  "metric": "roc_auc",
+  "shown": "0.8975",
+  "label": "stale"
+ }
+]

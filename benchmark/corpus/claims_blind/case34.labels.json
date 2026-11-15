@@ -1,0 +1,17 @@
+[
+ {
+  "metric": "accuracy",
+  "shown": "84%",
+  "label": "traced"
+ },
+ {
+  "metric": "roc_auc",
+  "shown": "0.90",
+  "label": "traced"
+ },
+ {
+  "metric": "rmse",
+  "shown": "12.41",
+  "label": "traced"
+ }
+]

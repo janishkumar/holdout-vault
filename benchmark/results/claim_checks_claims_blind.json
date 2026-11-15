@@ -1,0 +1,104 @@
+{
+  "corpus": "claims_blind",
+  "reports": 40,
+  "gold_claims": 160,
+  "predicted_claims": 159,
+  "extraction_precision": 1.0,
+  "extraction_recall": 0.994,
+  "label_accuracy_on_matched": 1.0,
+  "end_to_end_correct": 159,
+  "unsupported": {
+    "tp": 94,
+    "fp": 0,
+    "fn": 1,
+    "precision": 1.0,
+    "precision_ci95": [
+      0.961,
+      1.0
+    ],
+    "recall": 0.989,
+    "recall_ci95": [
+      0.943,
+      0.998
+    ]
+  },
+  "per_label": {
+    "traced": {
+      "tp": 65,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "recall_ci95": [
+        0.944,
+        1.0
+      ]
+    },
+    "mismatched": {
+      "tp": 15,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "recall_ci95": [
+        0.796,
+        1.0
+      ]
+    },
+    "orphaned": {
+      "tp": 26,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "recall_ci95": [
+        0.871,
+        1.0
+      ]
+    },
+    "cherry-picked": {
+      "tp": 16,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "recall_ci95": [
+        0.806,
+        1.0
+      ]
+    },
+    "stale": {
+      "tp": 13,
+      "fp": 0,
+      "fn": 1,
+      "precision": 1.0,
+      "recall": 0.929,
+      "recall_ci95": [
+        0.685,
+        0.987
+      ]
+    },
+    "untrusted-source": {
+      "tp": 24,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "recall_ci95": [
+        0.862,
+        1.0
+      ]
+    }
+  },
+  "errors": [
+    {
+      "case": "case31.md",
+      "gold": {
+        "metric": "accuracy",
+        "shown": "83.50%",
+        "label": "stale"
+      },
+      "predicted": null
+    }
+  ]
+}

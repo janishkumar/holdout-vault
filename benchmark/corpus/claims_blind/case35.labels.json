@@ -1,0 +1,17 @@
+[
+ {
+  "metric": "roc_auc",
+  "shown": "0.8911",
+  "label": "traced"
+ },
+ {
+  "metric": "roc_auc",
+  "shown": "0.9012",
+  "label": "traced"
+ },
+ {
+  "metric": "f1",
+  "shown": "0.6710",
+  "label": "traced"
+ }
+]

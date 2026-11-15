@@ -1,0 +1,1 @@
+Across the churn sealed scores, accuracy moved from 0.8125 at entry #2 to 0.8411 at entry #4, while ROC AUC climbed from 0.8840 to 0.9012 over the same two commits, and a side evaluation on a dropped branch gave 0.8350 accuracy, which we ignore because it has been 3 sprints since that branch was touched.

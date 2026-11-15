@@ -1,0 +1,1 @@
+After the final retrain, the churn model reaches 0.8411 accuracy and 0.9012 ROC-AUC on the sealed holdout (7,043 customers, 20% split), which is comfortably ahead of last quarter's reported 0.7900, and the fraud sibling sits at an F1 of 0.6710 with a precision of 0.7005.

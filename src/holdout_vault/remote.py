@@ -118,6 +118,9 @@ class RemoteVault:
         body = {"tables": [{"path": path, "csv": df.to_csv(index=False)} for path, df in tables]}
         return [Finding(**f) for f in self._json("POST", f"/datasets/{dataset}/artifacts", body)]
 
+    def ledger_entries(self) -> list[dict[str, Any]]:
+        return self._json("GET", "/ledger")
+
     def refuse(self, dataset: str, findings: list[Finding], source: str) -> dict[str, Any]:
         body = {"dataset": dataset, "findings": [f.to_dict() for f in findings], "source": source}
         return self._json("POST", "/refusals", body)

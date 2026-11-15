@@ -1,0 +1,1 @@
+The price regressor reaches an RMSE of 12.41 and an MAE of 8.93 with R² of 0.7120 on the sealed holdout, which compares with a validation R² of 0.7590 and validation RMSE of 11.20 from the W&B summary of a 2026-09-18 run, while the stray 7.50 MAE some people quote came from a notebook with 25,000 rows that was never sealed.

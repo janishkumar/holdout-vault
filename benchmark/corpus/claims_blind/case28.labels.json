@@ -1,0 +1,32 @@
+[
+ {
+  "metric": "f1",
+  "shown": "0.6620",
+  "label": "traced"
+ },
+ {
+  "metric": "log_loss",
+  "shown": "0.3120",
+  "label": "traced"
+ },
+ {
+  "metric": "f1",
+  "shown": "0.6710",
+  "label": "traced"
+ },
+ {
+  "metric": "log_loss",
+  "shown": "0.3011",
+  "label": "traced"
+ },
+ {
+  "metric": "f1",
+  "shown": "0.7015",
+  "label": "untrusted-source"
+ },
+ {
+  "metric": "log_loss",
+  "shown": "0.2890",
+  "label": "untrusted-source"
+ }
+]

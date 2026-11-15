@@ -1,0 +1,22 @@
+[
+ {
+  "metric": "accuracy",
+  "shown": "0.8411",
+  "label": "cherry-picked"
+ },
+ {
+  "metric": "f1",
+  "shown": "0.6710",
+  "label": "traced"
+ },
+ {
+  "metric": "mae",
+  "shown": "8.93",
+  "label": "traced"
+ },
+ {
+  "metric": "roc_auc",
+  "shown": "0.9012",
+  "label": "cherry-picked"
+ }
+]

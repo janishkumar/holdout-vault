@@ -60,6 +60,23 @@ class ApproveReveal(BaseModel):
     approve: bool = Field(description="Allow one more sealed score beyond the budget")
 
 
+class ClaimModel(BaseModel):
+    label: Literal["traced", "mismatched", "orphaned", "cherry-picked", "stale", "untrusted-source"]
+    flags: list[str] = Field(default_factory=list)
+    explanation: str
+    location: dict[str, Any]
+    claim: dict[str, Any] = Field(description="metric, value, shown, tolerance, text, scope, ref_seq")
+    evidence: dict[str, Any] = Field(default_factory=dict)
+
+
+class ClaimReport(BaseModel):
+    summary: str = Field(description="e.g. '12 metric claim(s), 9 traced, 3 unsupported'")
+    counts: dict[str, int] = Field(description="claims per label")
+    documents: list[str] = Field(description="documents read")
+    records: dict[str, int] = Field(description="run records read, per source")
+    claims: list[ClaimModel] = Field(default_factory=list)
+
+
 class LeakageReport(BaseModel):
     dataset: str
     message: str = Field(description="Plain-English summary")

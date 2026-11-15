@@ -307,6 +307,9 @@ class Vault:
         rec = self._record(dataset)
         return canary_artifact_findings(rec.task, rec.classes, self.store.read_canaries(dataset), tables)
 
+    def ledger_entries(self) -> list[dict[str, Any]]:
+        return [e.to_dict() for e in self.store.ledger.entries()]
+
     def refuse(self, dataset: str, findings: list[Finding], source: str) -> Entry:
         """Log a submission the front door refused because of blocking findings. Spends nothing."""
         self._record(dataset)

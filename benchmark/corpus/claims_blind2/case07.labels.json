@@ -1,0 +1,22 @@
+[
+ {
+  "metric": "accuracy",
+  "shown": "0.8203",
+  "label": "traced"
+ },
+ {
+  "metric": "f1",
+  "shown": "0.6710",
+  "label": "mismatched"
+ },
+ {
+  "metric": "log_loss",
+  "shown": "0.3120",
+  "label": "traced"
+ },
+ {
+  "metric": "accuracy",
+  "shown": "0.9100",
+  "label": "orphaned"
+ }
+]

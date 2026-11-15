@@ -1,0 +1,42 @@
+[
+ {
+  "metric": "roc_auc",
+  "shown": "0.8975",
+  "label": "stale"
+ },
+ {
+  "metric": "roc_auc",
+  "shown": "0.9550",
+  "label": "orphaned"
+ },
+ {
+  "metric": "accuracy",
+  "shown": "0.8350",
+  "label": "stale"
+ },
+ {
+  "metric": "accuracy",
+  "shown": "0.9100",
+  "label": "orphaned"
+ },
+ {
+  "metric": "log_loss",
+  "shown": "0.3120",
+  "label": "traced"
+ },
+ {
+  "metric": "log_loss",
+  "shown": "0.2890",
+  "label": "untrusted-source"
+ },
+ {
+  "metric": "f1",
+  "shown": "0.6620",
+  "label": "traced"
+ },
+ {
+  "metric": "f1",
+  "shown": "0.7015",
+  "label": "untrusted-source"
+ }
+]

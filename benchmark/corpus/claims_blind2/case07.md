@@ -1,0 +1,1 @@
+Weekly note. The churn classifier (accuracy 0.8203, per entry #3) was promoted to staging on 2026-11-03. After the retrain the fraud screen looked better (F1 0.6710 from entry #7), though its calibration (log loss 0.3120 in entry #7) is unchanged. Marketing keeps asking for (accuracy 0.9100), which we cannot reproduce.

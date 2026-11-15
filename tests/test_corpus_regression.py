@@ -19,3 +19,13 @@ from code_checks import evaluate  # noqa: E402
 def test_corpus_still_exact(corpus):
     res = evaluate(BENCH / "corpus" / corpus)
     assert res["mismatches"] == []
+
+
+@pytest.mark.parametrize(("corpus", "min_recall"), [("claims_blind", 0.99), ("claims_blind2", 0.86)])
+def test_claim_corpus_floor(corpus, min_recall):
+    from claim_checks import evaluate as evaluate_claims
+
+    res = evaluate_claims(BENCH / "corpus" / corpus)
+    assert res["extraction_precision"] == 1.0
+    assert res["extraction_recall"] >= min_recall
+    assert res["label_accuracy_on_matched"] == 1.0

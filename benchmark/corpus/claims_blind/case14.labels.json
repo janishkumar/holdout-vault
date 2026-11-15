@@ -1,0 +1,22 @@
+[
+ {
+  "metric": "f1",
+  "shown": "0.6710",
+  "label": "mismatched"
+ },
+ {
+  "metric": "log_loss",
+  "shown": "0.3120",
+  "label": "mismatched"
+ },
+ {
+  "metric": "rmse",
+  "shown": "11.20",
+  "label": "mismatched"
+ },
+ {
+  "metric": "r2",
+  "shown": "0.7120",
+  "label": "traced"
+ }
+]

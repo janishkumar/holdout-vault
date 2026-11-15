@@ -1,0 +1,275 @@
+{
+  "corpus": "claims_blind2",
+  "reports": 30,
+  "gold_claims": 146,
+  "predicted_claims": 126,
+  "extraction_precision": 1.0,
+  "extraction_recall": 0.863,
+  "label_accuracy_on_matched": 1.0,
+  "end_to_end_correct": 126,
+  "unsupported": {
+    "tp": 78,
+    "fp": 0,
+    "fn": 16,
+    "precision": 1.0,
+    "precision_ci95": [
+      0.953,
+      1.0
+    ],
+    "recall": 0.83,
+    "recall_ci95": [
+      0.741,
+      0.892
+    ]
+  },
+  "per_label": {
+    "traced": {
+      "tp": 48,
+      "fp": 0,
+      "fn": 4,
+      "precision": 1.0,
+      "recall": 0.923,
+      "recall_ci95": [
+        0.818,
+        0.97
+      ]
+    },
+    "mismatched": {
+      "tp": 13,
+      "fp": 0,
+      "fn": 4,
+      "precision": 1.0,
+      "recall": 0.765,
+      "recall_ci95": [
+        0.527,
+        0.904
+      ]
+    },
+    "orphaned": {
+      "tp": 23,
+      "fp": 0,
+      "fn": 6,
+      "precision": 1.0,
+      "recall": 0.793,
+      "recall_ci95": [
+        0.616,
+        0.902
+      ]
+    },
+    "cherry-picked": {
+      "tp": 12,
+      "fp": 0,
+      "fn": 1,
+      "precision": 1.0,
+      "recall": 0.923,
+      "recall_ci95": [
+        0.667,
+        0.986
+      ]
+    },
+    "stale": {
+      "tp": 9,
+      "fp": 0,
+      "fn": 3,
+      "precision": 1.0,
+      "recall": 0.75,
+      "recall_ci95": [
+        0.468,
+        0.911
+      ]
+    },
+    "untrusted-source": {
+      "tp": 21,
+      "fp": 0,
+      "fn": 2,
+      "precision": 1.0,
+      "recall": 0.913,
+      "recall_ci95": [
+        0.732,
+        0.976
+      ]
+    }
+  },
+  "errors": [
+    {
+      "case": "case01.md",
+      "gold": {
+        "metric": "roc_auc",
+        "shown": "0.9012",
+        "label": "cherry-picked"
+      },
+      "predicted": null
+    },
+    {
+      "case": "case02.md",
+      "gold": {
+        "metric": "recall",
+        "shown": "0.6840",
+        "label": "orphaned"
+      },
+      "predicted": null
+    },
+    {
+      "case": "case05.md",
+      "gold": {
+        "metric": "balanced_accuracy",
+        "shown": "0.7650",
+        "label": "orphaned"
+      },
+      "predicted": null
+    },
+    {
+      "case": "case09.md",
+      "gold": {
+        "metric": "accuracy",
+        "shown": "83.50%",
+        "label": "stale"
+      },
+      "predicted": null
+    },
+    {
+      "case": "case09.md",
+      "gold": {
+        "metric": "roc_auc",
+        "shown": "89.75%",
+        "label": "stale"
+      },
+      "predicted": null
+    },
+    {
+      "case": "case09.md",
+      "gold": {
+        "metric": "accuracy",
+        "shown": "0.7950",
+        "label": "mismatched"
+      },
+      "predicted": null
+    },
+    {
+      "case": "case12.md",
+      "gold": {
+        "metric": "accuracy",
+        "shown": "0.8411",
+        "label": "traced"
+      },
+      "predicted": null
+    },
+    {
+      "case": "case12.md",
+      "gold": {
+        "metric": "roc_auc",
+        "shown": "0.9012",
+        "label": "traced"
+      },
+      "predicted": null
+    },
+    {
+      "case": "case12.md",
+      "gold": {
+        "metric": "recall",
+        "shown": "0.7040",
+        "label": "orphaned"
+      },
+      "predicted": null
+    },
+    {
+      "case": "case20.md",
+      "gold": {
+        "metric": "balanced_accuracy",
+        "shown": "0.7766",
+        "label": "orphaned"
+      },
+      "predicted": null
+    },
+    {
+      "case": "case20.md",
+      "gold": {
+        "metric": "accuracy",
+        "shown": "0.8999",
+        "label": "orphaned"
+      },
+      "predicted": null
+    },
+    {
+      "case": "case20.md",
+      "gold": {
+        "metric": "accuracy",
+        "shown": "0.8203",
+        "label": "traced"
+      },
+      "predicted": null
+    },
+    {
+      "case": "case25.md",
+      "gold": {
+        "metric": "accuracy",
+        "shown": "0.8710",
+        "label": "untrusted-source"
+      },
+      "predicted": null
+    },
+    {
+      "case": "case25.md",
+      "gold": {
+        "metric": "accuracy",
+        "shown": "0.8710",
+        "label": "mismatched"
+      },
+      "predicted": null
+    },
+    {
+      "case": "case25.md",
+      "gold": {
+        "metric": "roc_auc",
+        "shown": "0.9402",
+        "label": "mismatched"
+      },
+      "predicted": null
+    },
+    {
+      "case": "case25.md",
+      "gold": {
+        "metric": "f1",
+        "shown": "0.6620",
+        "label": "traced"
+      },
+      "predicted": null
+    },
+    {
+      "case": "case25.md",
+      "gold": {
+        "metric": "r2",
+        "shown": "0.7590",
+        "label": "mismatched"
+      },
+      "predicted": null
+    },
+    {
+      "case": "case27.md",
+      "gold": {
+        "metric": "accuracy",
+        "shown": "0.8350",
+        "label": "stale"
+      },
+      "predicted": null
+    },
+    {
+      "case": "case27.md",
+      "gold": {
+        "metric": "precision",
+        "shown": "0.7410",
+        "label": "orphaned"
+      },
+      "predicted": null
+    },
+    {
+      "case": "case29.md",
+      "gold": {
+        "metric": "accuracy",
+        "shown": "0.7900",
+        "label": "untrusted-source"
+      },
+      "predicted": null
+    }
+  ]
+}

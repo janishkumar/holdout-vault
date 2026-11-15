@@ -1,0 +1,27 @@
+[
+ {
+  "metric": "accuracy",
+  "shown": "0.8411",
+  "label": "traced"
+ },
+ {
+  "metric": "roc_auc",
+  "shown": "0.9012",
+  "label": "traced"
+ },
+ {
+  "metric": "log_loss",
+  "shown": "0.3120",
+  "label": "traced"
+ },
+ {
+  "metric": "r2",
+  "shown": "0.7120",
+  "label": "traced"
+ },
+ {
+  "metric": "recall",
+  "shown": "0.7040",
+  "label": "orphaned"
+ }
+]

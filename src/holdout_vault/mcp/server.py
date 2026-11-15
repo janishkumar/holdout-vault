@@ -8,6 +8,7 @@ grants are human-only CLI commands. Going over budget asks the human through a m
 # No `from __future__ import annotations`: the SDK evaluates tool signatures at runtime, and the
 # resolver referenced in the tools' annotations is a local closure.
 import hashlib
+import threading
 from collections.abc import Callable
 from pathlib import Path
 from typing import Annotated, Any
@@ -18,13 +19,24 @@ from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.resolve import Elicit, Resolve
 
 from holdout_vault.checks.run import CheckResult, full_checks, workspace_checks
+from holdout_vault.claims.run import counts as claim_counts
+from holdout_vault.claims.run import run_audit
 from holdout_vault.core.errors import BudgetExhausted, Refused, TamperDetected, ValidationError, VaultError
 from holdout_vault.core.findings import Finding
 from holdout_vault.core.hashing import file_sha256
 from holdout_vault.core.provenance import collect_stamp
 from holdout_vault.core.registry import read_table
 from holdout_vault.core.vault import Approval, Mode, Vault
-from holdout_vault.mcp.models import ApproveReveal, FindingModel, LeakageReport, ScoreVerdict, VaultStatus
+from holdout_vault.mcp.models import (
+    ApproveReveal,
+    ClaimModel,
+    ClaimReport,
+    FindingModel,
+    LeakageReport,
+    ScoreVerdict,
+    VaultStatus,
+)
+from holdout_vault.mcp.tasks import Cancelled, TasksExtension
 from holdout_vault.remote import RemoteVault
 from holdout_vault.runner.launcher import RunnerConfig, RunnerError, run_model
 
@@ -45,7 +57,8 @@ with predict.py defining predict(features)) and call `evaluate`.
 Each successful score spends one reveal from a limited budget and is recorded in a tamper-evident
 ledger. Report only numbers returned by this server, and quote the ledger entry they came from.
 Before each score the server checks the workspace code and data files for leakage; `check_leakage`
-runs the same checks for free.
+runs the same checks for free. Before reporting results, call `audit_claims` on the report to confirm
+every number traces to a ledger entry.
 """
 
 
@@ -74,7 +87,18 @@ def build_server(
         vault = (RemoteVault.from_config(project, home) if mode != "watch" else None) or Vault(home, project, mode=mode)
     runner_cfg = runner or RunnerConfig(use_docker=vault.mode == "sealed")
     repo_dir = Path(repo).resolve() if repo is not None else None
-    mcp = MCPServer("holdout-vault", instructions=INSTRUCTIONS)
+    runners: dict[str, Any] = {}
+
+    def budget_left(name: str, args: dict[str, Any]) -> bool:
+        # Over budget, the call stays synchronous so the human can be asked mid-call.
+        try:
+            return vault.budget_state().remaining > 0
+        except VaultError:
+            return False
+
+    tasks = TasksExtension(runners, eligible=budget_left)
+    mcp = MCPServer("holdout-vault", instructions=INSTRUCTIONS, extensions=[tasks])
+    mcp.tasks = tasks  # type: ignore[attr-defined]
 
     def resolve_path(p: str) -> Path:
         path = Path(p).expanduser()
@@ -125,13 +149,19 @@ def build_server(
         approval: Approval | None,
         kind: str,
         exclude: list[Path] = (),
+        status: Callable[[str], None] = lambda msg: None,
+        cancel: threading.Event | None = None,
     ) -> ScoreVerdict:
         try:
+            status("Checking the workspace for leakage.")
             checked = checks(dataset, list(exclude))
             if checked.blocking:
                 vault.refuse(dataset, checked.blocking, source="front-door")
                 raise Refused(checked.blocking)
             preds = produce()
+            if cancel is not None and cancel.is_set():
+                raise Cancelled()  # stopped before scoring: nothing revealed, nothing spent
+            status("Scoring on the sealed labels.")
             r = vault.score(dataset, preds, stamp=stamp, approval=approval, kind=kind, extra_findings=checked.findings)
         except (ValidationError, RunnerError) as exc:
             return _invalid(dataset, vault, str(exc))
@@ -215,13 +245,25 @@ def build_server(
         approval, early = approval_from(gate, dataset)
         if early:
             return early
+        return run_evaluate(dataset, model_path, seed, approval)
+
+    def run_evaluate(
+        dataset: str,
+        model_path: str,
+        seed: int | None,
+        approval: Approval | None,
+        status: Callable[[str], None] = lambda msg: None,
+        cancel: threading.Event | None = None,
+    ) -> ScoreVerdict:
         path = resolve_path(model_path)
         if not path.exists():
             return _invalid(dataset, vault, f"model not found: {path}")
+        where = "an isolated runner container" if runner_cfg.use_docker else "a subprocess"
 
         def produce() -> pd.DataFrame:
             info = vault.dataset_info(dataset)
             features = vault.test_features(dataset)
+            status(f"Running the model on {len(features)} test rows in {where}.")
             return run_model(path, features, info["id_col"], runner_cfg)
 
         stamp = {
@@ -230,7 +272,14 @@ def build_server(
             "model_sha256": model_sha256(path),
             "runner": "container" if runner_cfg.use_docker else "subprocess",
         }
-        return reveal(dataset, produce, stamp, approval, "evaluate")
+        return reveal(dataset, produce, stamp, approval, "evaluate", status=status, cancel=cancel)
+
+    def evaluate_task(args: dict[str, Any], status: Callable[[str], None], cancel: threading.Event) -> dict | None:
+        verdict = run_evaluate(args["dataset"], args["model_path"], args.get("seed"), None, status, cancel)
+        data = verdict.model_dump(mode="json")
+        return {"content": [{"type": "text", "text": verdict.message}], "structuredContent": data, "isError": False}
+
+    runners["evaluate"] = evaluate_task
 
     @mcp.tool(title="Check the workspace for leakage without scoring")
     def check_leakage(dataset: str, paths: list[str] | None = None) -> LeakageReport:
@@ -266,6 +315,26 @@ def build_server(
             tables_scanned=found.tables_scanned,
             unparsed=found.unparsed,
             findings=_findings(found.findings),
+        )
+
+    @mcp.tool(title="Check reported metrics against the ledger")
+    def audit_claims(paths: list[str] | None = None, text: str | None = None) -> ClaimReport:
+        """Trace every metric claim in reports to the score that produced it.
+
+        Reads Markdown, text and notebook markdown in the workspace (or only `paths`, or only `text`),
+        finds claims like "AUC of 0.91", and labels each one: traced (matches a vault score),
+        mismatched, orphaned, cherry-picked (best of several scores, others undisclosed), stale (from a
+        commit no longer in history) or untrusted-source (only in MLflow/JSON run records). Free.
+        """
+        if repo_dir is None and text is None:
+            return ClaimReport(summary="No workspace configured; pass text.", counts={}, documents=[], records={})
+        report = run_audit(vault, repo_dir or Path.cwd(), paths=paths, text=text)
+        return ClaimReport(
+            summary=report.summary,
+            counts={k: v for k, v in claim_counts(report).items() if v},
+            documents=report.documents,
+            records=report.records,
+            claims=[ClaimModel(**r.to_dict()) for r in report.results],
         )
 
     @mcp.tool(title="Vault status")
