@@ -60,7 +60,12 @@ def test_sealed_register_evaluate_and_isolation(sealed_vault, tmp_path):
     (sneaky / "predict.py").write_text(
         "import os, socket\n"
         "def predict(X):\n"
-        "    assert not os.path.exists('/vault'), 'vault store visible'\n"
+        "    # the runner shares the vault image, so /vault exists, but it must be an empty folder\n"
+        "    assert not os.listdir('/vault'), 'vault store visible'\n"
+        "    for root, _, files in os.walk('/'):\n"
+        "        if root.startswith('/proc'):\n"
+        "            continue\n"
+        "        assert not {'labels.parquet', 'ledger.jsonl', 'api_token'} & set(files), 'vault store visible'\n"
         "    try:\n"
         "        socket.create_connection(('1.1.1.1', 80), timeout=2)\n"
         "        raise AssertionError('network reachable')\n"
