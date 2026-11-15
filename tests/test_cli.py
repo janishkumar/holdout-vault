@@ -74,3 +74,20 @@ def test_ledger_tail(home, split_files, tmp_path, capsys):
 
 def test_no_command_prints_help(capsys):
     assert main([]) == 2
+
+
+def test_check_command(registered, tmp_path, capsys):
+    ws = tmp_path / "workspace"
+    (ws / "peek.py").write_text("import pandas as pd\nt = pd.read_csv('raw/test.csv')\n")
+    code = main(["check", "--project", "demo", "--dataset", "churn", "--repo", str(ws), "--home", str(registered.home)])
+    out = capsys.readouterr().out
+    assert code == 1
+    assert "HV-COD-004 [block]" in out and "file=peek.py" in out
+    (ws / "peek.py").unlink()
+    assert main(["check", "--project", "demo", "--dataset", "churn", "--repo", str(ws), "--json"]) == 0
+    assert capsys.readouterr().out.strip() == "[]"
+
+
+def test_check_sealed_without_vault(home, capsys):
+    assert main(["check", "--project", "demo", "--dataset", "x", "--sealed"]) == 2
+    assert "no sealed vault" in capsys.readouterr().err

@@ -16,6 +16,7 @@ from typing import Any, Literal
 import pandas as pd
 
 from holdout_vault import __version__
+from holdout_vault.checks.artifacts import canary_artifact_findings
 from holdout_vault.core.canary import canary_agreement
 from holdout_vault.core.errors import BudgetExhausted, Refused, TamperDetected, ValidationError
 from holdout_vault.core.findings import Finding
@@ -202,8 +203,11 @@ class Vault:
         stamp: dict[str, Any] | None = None,
         approval: Approval | None = None,
         kind: Literal["score", "evaluate"] = "score",
+        extra_findings: list[Finding] | None = None,
     ) -> ScoreResult:
+        """``extra_findings`` are non-blocking findings from the front door's checks, logged with the score."""
         rec = self._record(dataset)
+        extra = [f for f in (extra_findings or []) if f.severity != "block"]
         ledger = self.store.ledger
 
         findings = self.integrity_findings(rec)
@@ -267,6 +271,7 @@ class Vault:
                 "stamp": full_stamp,
                 "remaining": remaining_after,
                 "approved_by": approval.by if approval else None,
+                "findings": sorted({f.code for f in [*findings, *extra] if f.severity != "block"}),
             },
         )
         full_stamp = {**full_stamp, "ledger_seq": entry.seq, "ledger_hash": entry.hash}
@@ -280,7 +285,33 @@ class Vault:
             entry_hash=entry.hash,
             mode=self.mode,
             stamp=full_stamp,
-            findings=[f for f in findings if f.severity != "block"],
+            findings=[f for f in findings if f.severity != "block"] + extra,
+        )
+
+    # checks the front door runs ---------------------------------------------------------------
+    def check_context(self, dataset: str) -> dict[str, Any]:
+        """What the front door's code checks need. Never shown to the agent."""
+        r = self._record(dataset)
+        return {
+            "target": r.target,
+            "id_col": r.id_col,
+            "test_path": r.test_path,
+            "home": str(self.store.home),
+            "export_dir": r.export_dir,
+        }
+
+    def row_findings(self, dataset: str) -> list[Finding]:
+        return [Finding(**f) for f in self._record(dataset).row_findings]
+
+    def artifact_findings(self, dataset: str, tables: list[tuple[str, pd.DataFrame]]) -> list[Finding]:
+        rec = self._record(dataset)
+        return canary_artifact_findings(rec.task, rec.classes, self.store.read_canaries(dataset), tables)
+
+    def refuse(self, dataset: str, findings: list[Finding], source: str) -> Entry:
+        """Log a submission the front door refused because of blocking findings. Spends nothing."""
+        self._record(dataset)
+        return self.store.ledger.append(
+            "refused", {"dataset": dataset, "source": source, "findings": [f.to_dict() for f in findings]}
         )
 
     # agent-visible dataset info -------------------------------------------------------------

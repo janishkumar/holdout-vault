@@ -44,6 +44,8 @@ def cmd_register(args: argparse.Namespace) -> int:
                 opts += [flag, val]
         if args.replace:
             opts.append("--replace")
+        if args.strict:
+            opts.append("--strict")
         export = Path(args.export_dir).resolve()
         opts += ["--agent-export-dir", str(export / args.name)]
         files = {"--train": Path(args.train), "--test": Path(args.test)}
@@ -73,11 +75,18 @@ def cmd_register(args: argparse.Namespace) -> int:
         replace=args.replace,
         by=args.by,
         agent_export_dir=args.agent_export_dir,
+        strict=args.strict,
     )
     print(f"Registered {rec.name} ({rec.task}) in project {rec.project}.")
     print(f"  Labels and scorer sealed in {rec.home}")
     print(f"  Agent files: {rec.export_dir}/train.csv and test_features.csv")
     print(f"  Id column: {rec.id_col}. Metrics: {', '.join(rec.metrics) or rec.scorer_kind + ' scorer'}")
+    if rec.row_findings:
+        print("Row checks found problems with this split (the agent will see them too):")
+        for f in rec.row_findings:
+            print(f"  {f['code']} [{f['severity']}] {f['title']}")
+    else:
+        print("  Row checks: no train/test overlap found.")
     return 0
 
 
@@ -131,6 +140,33 @@ def cmd_ledger(args: argparse.Namespace) -> int:
     for e in entries[-args.tail :] if args.tail else entries:
         print(json.dumps({"seq": e.seq, "ts": e.ts, "kind": e.kind, "payload": e.payload}))
     return 0
+
+
+def cmd_check(args: argparse.Namespace) -> int:
+    from holdout_vault.checks.run import full_checks
+
+    if args.sealed:
+        from holdout_vault.remote import RemoteVault
+
+        vault = RemoteVault.from_config(args.project, args.home)
+        if vault is None:
+            print("error: no sealed vault is running (run `holdout-vault up`)", file=sys.stderr)
+            return 2
+    else:
+        vault = _vault(args)
+    result = full_checks(vault, args.dataset, Path(args.repo), paths=args.paths or None)
+    if args.json:
+        print(json.dumps([f.to_dict() for f in result.findings], indent=2))
+    else:
+        print(f"Checked {result.files_scanned} code file(s) and {result.tables_scanned} data file(s).")
+        for f in result.findings:
+            loc = ", ".join(f"{k}={v}" for k, v in f.location.items() if k != "row_ids")
+            print(f"  {f.code} [{f.severity}] {f.title}" + (f"  ({loc})" if loc else ""))
+        for u in result.unparsed:
+            print(f"  could not parse {u}")
+        if not result.findings:
+            print("  No problems found.")
+    return 1 if result.blocking else 0
 
 
 def cmd_serve(args: argparse.Namespace) -> int:
@@ -193,6 +229,7 @@ def build_parser() -> argparse.ArgumentParser:
     r.add_argument("--scorer", help="custom scorer .py defining score(y_true, predictions)")
     r.add_argument("--seed", type=int, default=0)
     r.add_argument("--replace", action="store_true")
+    r.add_argument("--strict", action="store_true", help="refuse to register when row checks find overlap")
     r.add_argument("--by", default=who, help=argparse.SUPPRESS)
     r.add_argument("--agent-export-dir", default=None, help=argparse.SUPPRESS)
 
@@ -212,6 +249,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     lg = add("ledger", cmd_ledger, "print ledger entries as JSON lines")
     lg.add_argument("--tail", type=int, default=0)
+
+    c = add("check", cmd_check, "run the integrity checks on a workspace without scoring")
+    c.add_argument("--dataset", required=True)
+    c.add_argument("--repo", default=".", help="the agent's workspace")
+    c.add_argument("paths", nargs="*", help="limit code checks to these files or folders")
+    c.add_argument("--json", action="store_true")
 
     sv = add("serve", cmd_serve, "run the MCP server (stdio by default)", sealed=False)
     sv.add_argument("--repo", default=".", help="agent repository used for provenance stamps")

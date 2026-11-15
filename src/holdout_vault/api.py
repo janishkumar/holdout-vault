@@ -1,7 +1,8 @@
 """Internal HTTP API of the vault container.
 
 Only the front door talks to it, over loopback, with a bearer token. It exposes exactly what the agent
-may cause to happen (score, read status, read features, read the ledger). There are no endpoints for
+may cause to happen (score, read status, read features, read the ledger, run integrity checks, log a
+refusal). There are no endpoints for
 registration, budgets or grants; those run as CLI commands inside the container.
 """
 
@@ -21,6 +22,7 @@ from starlette.responses import JSONResponse, PlainTextResponse
 from starlette.routing import Route
 
 from holdout_vault.core.errors import BudgetExhausted, Refused, TamperDetected, ValidationError
+from holdout_vault.core.findings import Finding
 from holdout_vault.core.store import default_home
 from holdout_vault.core.vault import Approval, Vault
 
@@ -122,6 +124,7 @@ def create_app(home: str | Path | None = None, token: str | None = None) -> Star
                 stamp=body.get("stamp"),
                 approval=approval,
                 kind=body.get("kind", "score"),
+                extra_findings=[Finding(**f) for f in body.get("findings") or []],
             )
         except ValidationError as exc:
             return JSONResponse({"error": "invalid", "message": str(exc)}, status_code=422)
@@ -142,6 +145,41 @@ def create_app(home: str | Path | None = None, token: str | None = None) -> Star
             )
         return JSONResponse(_result_json(r))
 
+    async def check_context(request: Request):
+        try:
+            return JSONResponse(vault_for(request).check_context(request.path_params["name"]))
+        except ValidationError as exc:
+            return JSONResponse({"error": "invalid", "message": str(exc)}, status_code=404)
+
+    async def row_findings(request: Request):
+        try:
+            found = vault_for(request).row_findings(request.path_params["name"])
+        except ValidationError as exc:
+            return JSONResponse({"error": "invalid", "message": str(exc)}, status_code=404)
+        return JSONResponse([f.to_dict() for f in found])
+
+    async def artifacts(request: Request):
+        body = await request.json()
+        try:
+            tables = [(t["path"], pd.read_csv(io.StringIO(t["csv"]), low_memory=False)) for t in body["tables"]]
+        except Exception as exc:
+            return JSONResponse({"error": "invalid", "message": f"bad tables: {exc}"}, status_code=422)
+        try:
+            found = vault_for(request).artifact_findings(request.path_params["name"], tables)
+        except ValidationError as exc:
+            return JSONResponse({"error": "invalid", "message": str(exc)}, status_code=404)
+        return JSONResponse([f.to_dict() for f in found])
+
+    async def refusals(request: Request):
+        body = await request.json()
+        try:
+            entry = vault_for(request).refuse(
+                body["dataset"], [Finding(**f) for f in body["findings"]], source=body.get("source", "front-door")
+            )
+        except ValidationError as exc:
+            return JSONResponse({"error": "invalid", "message": str(exc)}, status_code=404)
+        return JSONResponse({"seq": entry.seq, "hash": entry.hash})
+
     routes = [
         Route("/health", health),
         Route("/v1/{project}/status", guard(status)),
@@ -150,6 +188,10 @@ def create_app(home: str | Path | None = None, token: str | None = None) -> Star
         Route("/v1/{project}/datasets/{name}/features", guard(features)),
         Route("/v1/{project}/ledger", guard(ledger)),
         Route("/v1/{project}/score", guard(score), methods=["POST"]),
+        Route("/v1/{project}/datasets/{name}/check-context", guard(check_context)),
+        Route("/v1/{project}/datasets/{name}/row-findings", guard(row_findings)),
+        Route("/v1/{project}/datasets/{name}/artifacts", guard(artifacts), methods=["POST"]),
+        Route("/v1/{project}/refusals", guard(refusals), methods=["POST"]),
     ]
     return Starlette(routes=routes)
 

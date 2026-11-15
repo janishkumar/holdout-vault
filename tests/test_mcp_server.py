@@ -36,7 +36,7 @@ async def test_only_agent_tools_are_exposed(setup):
     server, _, _ = setup
     async with Client(server) as c:
         tools = {t.name: t for t in (await c.list_tools()).tools}
-    assert set(tools) == {"score", "evaluate", "vault_status"}
+    assert set(tools) == {"score", "evaluate", "check_leakage", "vault_status"}
     assert all(t.output_schema for t in tools.values())
     assert "gate" not in tools["score"].input_schema["properties"]
 
@@ -134,7 +134,7 @@ async def test_tools_list_order_is_deterministic(setup):
     async with Client(server) as c:
         first = [t.name for t in (await c.list_tools()).tools]
         second = [t.name for t in (await c.list_tools()).tools]
-    assert first == second == ["score", "evaluate", "vault_status"]
+    assert first == second == ["score", "evaluate", "check_leakage", "vault_status"]
 
 
 async def test_evaluate_runs_model_and_scores(setup):

@@ -17,13 +17,14 @@ from mcp.server.elicitation import AcceptedElicitation, ElicitationResult
 from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.resolve import Elicit, Resolve
 
+from holdout_vault.checks.run import CheckResult, full_checks, workspace_checks
 from holdout_vault.core.errors import BudgetExhausted, Refused, TamperDetected, ValidationError, VaultError
 from holdout_vault.core.findings import Finding
 from holdout_vault.core.hashing import file_sha256
 from holdout_vault.core.provenance import collect_stamp
 from holdout_vault.core.registry import read_table
 from holdout_vault.core.vault import Approval, Mode, Vault
-from holdout_vault.mcp.models import ApproveReveal, FindingModel, ScoreVerdict, VaultStatus
+from holdout_vault.mcp.models import ApproveReveal, FindingModel, LeakageReport, ScoreVerdict, VaultStatus
 from holdout_vault.remote import RemoteVault
 from holdout_vault.runner.launcher import RunnerConfig, RunnerError, run_model
 
@@ -43,6 +44,8 @@ Train on train.csv. Then either write a predictions CSV (the id column, 'predict
 with predict.py defining predict(features)) and call `evaluate`.
 Each successful score spends one reveal from a limited budget and is recorded in a tamper-evident
 ledger. Report only numbers returned by this server, and quote the ledger entry they came from.
+Before each score the server checks the workspace code and data files for leakage; `check_leakage`
+runs the same checks for free.
 """
 
 
@@ -99,16 +102,37 @@ def build_server(
             return None, _over_budget(dataset, vault, "The human declined another reveal.")
         return None, _over_budget(dataset, vault, f"The confirmation was {gate.action}; nothing was revealed.")
 
+    def checks(dataset: str, exclude: list[Path]) -> CheckResult:
+        if repo_dir is None:
+            return CheckResult()
+        try:
+            return workspace_checks(vault, dataset, repo_dir, exclude=exclude)
+        except ValidationError:
+            raise
+        except Exception as exc:  # a checker bug must not block scoring; say so instead
+            note = Finding(
+                code="HV-CHK-000",
+                severity="info",
+                title="Workspace checks could not run",
+                explanation=f"The code and artifact checks failed with {exc.__class__.__name__}; nothing was checked.",
+            )
+            return CheckResult(findings=[note])
+
     def reveal(
         dataset: str,
         produce: Callable[[], pd.DataFrame],
         stamp: dict[str, Any],
         approval: Approval | None,
         kind: str,
+        exclude: list[Path] = (),
     ) -> ScoreVerdict:
         try:
+            checked = checks(dataset, list(exclude))
+            if checked.blocking:
+                vault.refuse(dataset, checked.blocking, source="front-door")
+                raise Refused(checked.blocking)
             preds = produce()
-            r = vault.score(dataset, preds, stamp=stamp, approval=approval, kind=kind)
+            r = vault.score(dataset, preds, stamp=stamp, approval=approval, kind=kind, extra_findings=checked.findings)
         except (ValidationError, RunnerError) as exc:
             return _invalid(dataset, vault, str(exc))
         except BudgetExhausted as exc:
@@ -130,11 +154,15 @@ def build_server(
                 findings=_findings(exc.findings),
             )
         shown = ", ".join(f"{k}={v:.4f}" for k, v in r.metrics.items())
+        warned = [f.code for f in r.findings if f.severity == "warn"]
+        tail = f" Warnings: {', '.join(sorted(set(warned)))}." if warned else ""
         return ScoreVerdict(
             status="scored",
             dataset=dataset,
             mode=r.mode,
-            message=(f"{shown} on {r.n_scored} sealed rows. Ledger entry #{r.entry_seq}. {r.remaining} reveals left."),
+            message=(
+                f"{shown} on {r.n_scored} sealed rows. Ledger entry #{r.entry_seq}. {r.remaining} reveals left." + tail
+            ),
             metrics=r.metrics,
             n_scored=r.n_scored,
             budget=r.budget,
@@ -169,7 +197,7 @@ def build_server(
                 raise ValidationError(f"could not read predictions: {exc}") from exc
 
         stamp = {**collect_stamp(repo_dir, seed=seed), "predictions_path": str(path)}
-        return reveal(dataset, produce, stamp, approval, "score")
+        return reveal(dataset, produce, stamp, approval, "score", exclude=[path])
 
     @mcp.tool(title="Run a saved model on the sealed test set and score it")
     def evaluate(
@@ -203,6 +231,42 @@ def build_server(
             "runner": "container" if runner_cfg.use_docker else "subprocess",
         }
         return reveal(dataset, produce, stamp, approval, "evaluate")
+
+    @mcp.tool(title="Check the workspace for leakage without scoring")
+    def check_leakage(dataset: str, paths: list[str] | None = None) -> LeakageReport:
+        """Run the integrity checks without spending a reveal.
+
+        Reports overlap between the sealed split and train (HV-ROW), leakage and tampering patterns in
+        the workspace's Python files and notebooks (HV-COD), and data files carrying the hidden canary
+        labels (HV-CAN-001). `paths` limits the code checks to some files or folders.
+        """
+        try:
+            if repo_dir is None:
+                found = CheckResult(findings=vault.row_findings(dataset))
+            else:
+                found = full_checks(vault, dataset, repo_dir, paths=paths)
+        except ValidationError as exc:
+            return LeakageReport(dataset=dataset, message=str(exc), blocking=0, warnings=0, files_scanned=0,
+                                 tables_scanned=0)  # fmt: skip
+        blocking = len(found.blocking)
+        warnings = sum(f.severity == "warn" for f in found.findings)
+        if not found.findings:
+            msg = f"No problems found in {found.files_scanned} code file(s) and {found.tables_scanned} data file(s)."
+        else:
+            codes = ", ".join(sorted({f.code for f in found.findings}))
+            msg = f"{blocking} blocking and {warnings} warning finding(s): {codes}. " + (
+                "Scores are refused until the blocking ones are fixed." if blocking else "Scores are still allowed."
+            )
+        return LeakageReport(
+            dataset=dataset,
+            message=msg,
+            blocking=blocking,
+            warnings=warnings,
+            files_scanned=found.files_scanned,
+            tables_scanned=found.tables_scanned,
+            unparsed=found.unparsed,
+            findings=_findings(found.findings),
+        )
 
     @mcp.tool(title="Vault status")
     def vault_status() -> VaultStatus:

@@ -18,7 +18,15 @@ from holdout_vault.core.errors import VaultError
 from holdout_vault.core.store import default_home
 from holdout_vault.remote import SEALED_CONFIG
 
-DEPENDENCIES = ["mcp>=2.3,<3", "numpy>=1.26", "pandas>=2.2", "pyarrow>=16", "scikit-learn>=1.5", "scipy>=1.13"]
+DEPENDENCIES = [
+    "mcp>=2.3,<3",
+    "numpy>=1.26",
+    "pandas>=2.2",
+    "pyarrow>=16",
+    "pyyaml>=6",
+    "scikit-learn>=1.5",
+    "scipy>=1.13",
+]
 
 
 def compose_project() -> str:

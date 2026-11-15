@@ -58,3 +58,14 @@ class VaultStatus(BaseModel):
 
 class ApproveReveal(BaseModel):
     approve: bool = Field(description="Allow one more sealed score beyond the budget")
+
+
+class LeakageReport(BaseModel):
+    dataset: str
+    message: str = Field(description="Plain-English summary")
+    blocking: int = Field(description="Findings that would refuse a score")
+    warnings: int
+    files_scanned: int = Field(description="Python files and notebooks analysed")
+    tables_scanned: int = Field(description="Data files compared against the hidden canary labels")
+    unparsed: list[str] = Field(default_factory=list, description="Files that could not be parsed")
+    findings: list[FindingModel] = Field(default_factory=list)

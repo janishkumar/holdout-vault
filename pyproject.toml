@@ -11,6 +11,7 @@ dependencies = [
     "numpy>=1.26",
     "pandas>=2.2",
     "pyarrow>=16",
+    "pyyaml>=6",
     "scikit-learn>=1.5",
     "scipy>=1.13",
 ]
@@ -31,6 +32,8 @@ packages = ["src/holdout_vault"]
 [tool.ruff]
 line-length = 120
 src = ["src", "tests"]
+# labelled corpora are fixture code, kept exactly as written
+extend-exclude = ["benchmark/corpus"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]

@@ -83,8 +83,10 @@ class RemoteVault:
         stamp: dict[str, Any] | None = None,
         approval: Approval | None = None,
         kind: str = "score",
+        extra_findings: list[Finding] | None = None,
     ) -> ScoreResult:
         body = {
+            "findings": [f.to_dict() for f in extra_findings or []],
             "dataset": dataset,
             "predictions_csv": predictions.to_csv(index=False),
             "stamp": stamp,
@@ -105,3 +107,17 @@ class RemoteVault:
         if code == 401:
             raise VaultError("the vault rejected the API token")
         raise ValidationError(p.get("message", f"vault error {code}"))
+
+    def check_context(self, dataset: str) -> dict[str, Any]:
+        return self._json("GET", f"/datasets/{dataset}/check-context")
+
+    def row_findings(self, dataset: str) -> list[Finding]:
+        return [Finding(**f) for f in self._json("GET", f"/datasets/{dataset}/row-findings")]
+
+    def artifact_findings(self, dataset: str, tables: list[tuple[str, pd.DataFrame]]) -> list[Finding]:
+        body = {"tables": [{"path": path, "csv": df.to_csv(index=False)} for path, df in tables]}
+        return [Finding(**f) for f in self._json("POST", f"/datasets/{dataset}/artifacts", body)]
+
+    def refuse(self, dataset: str, findings: list[Finding], source: str) -> dict[str, Any]:
+        body = {"dataset": dataset, "findings": [f.to_dict() for f in findings], "source": source}
+        return self._json("POST", "/refusals", body)
