@@ -1,0 +1,21 @@
+# The vault container. Labels, scorer and ledger live in the `store` volume, which is never mounted
+# anywhere else. The API listens on loopback only.
+services:
+  vault:
+    build: .
+    image: holdout-vault:local
+    ports:
+      - "127.0.0.1:${HV_PORT:-7341}:7341"
+    volumes:
+      - store:/vault
+      - scratch:/scratch
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt:
+      - "no-new-privileges:true"
+    restart: unless-stopped
+volumes:
+  store: {}
+  scratch: {}

@@ -4,9 +4,9 @@ export PYTHONPATH := src
 install:
 	uv sync
 lint:
-	uv run ruff check src tests
-	uv run ruff format --check src tests
+	uv run ruff check src tests benchmark
+	uv run ruff format --check src tests benchmark
 test:
-	uv run pytest -q
+	uv run pytest -q -m "not docker"
 cov:
-	uv run pytest -q --cov=holdout_vault --cov-report=term-missing --cov-fail-under=85
+	uv run pytest -q -m "not docker" --cov=holdout_vault --cov-report=term-missing --cov-fail-under=85

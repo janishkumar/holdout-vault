@@ -22,8 +22,8 @@ from holdout_vault.core.metrics import (
 from holdout_vault.core.store import DatasetRecord, Store, check_name
 
 CANARY_FRACTION = 0.01
-CANARY_MIN = 20
-CANARY_MAX = 200
+CANARY_MIN = 100
+CANARY_MAX = 500
 MAX_CLASSES_FOR_INT_TARGET = 20
 
 
@@ -72,6 +72,8 @@ def register_dataset(
     scorer_path: str | Path | None = None,
     seed: int = 0,
     replace: bool = False,
+    by: str | None = None,
+    agent_export_dir: str | None = None,
 ) -> DatasetRecord:
     try:
         check_name("dataset", name)
@@ -190,7 +192,7 @@ def register_dataset(
         scorer_sha256=scorer_sha,
         test_path=str(Path(test_path).resolve()),
         test_file_sha256=file_sha256(test_path),
-        export_dir=str(out.resolve()),
+        export_dir=agent_export_dir or str(out.resolve()),
         registered_at=datetime.now(UTC).isoformat(timespec="seconds"),
         time_col=time_col,
         group_col=group_col,
@@ -212,6 +214,7 @@ def register_dataset(
             "scorer_kind": scorer_kind,
             "scorer_sha256": scorer_sha,
             "replace": replace,
+            "by": by,
         },
     )
     return record

@@ -6,9 +6,9 @@ from holdout_vault.core.store import Store
 
 
 def test_canary_count_bounds():
-    assert canary_count(100) == 20
-    assert canary_count(5000) == 50
-    assert canary_count(100_000) == 200
+    assert canary_count(100) == 100
+    assert canary_count(20_000) == 200
+    assert canary_count(100_000) == 500
 
 
 def test_register_exports_features_without_labels(registered, tmp_path):
