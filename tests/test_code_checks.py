@@ -588,3 +588,39 @@ def test_column_transformer_drops_unlisted_columns(tmp_path, remainder, expected
     LogisticRegression().fit(ct.fit_transform(df), df["churn"])
     """
     assert codes(run(tmp_path, body)) == expected
+
+
+@pytest.mark.parametrize(
+    ("body", "expected"),
+    [
+        (
+            """
+        from sklearn.datasets import load_breast_cancer
+        X, y = load_breast_cancer(return_X_y=True)
+        X = StandardScaler().fit_transform(X)
+        X_tr, X_te, y_tr, y_te = train_test_split(X, y)
+        """,
+            ["HV-COD-001"],
+        ),
+        (
+            """
+        from sklearn import datasets
+        bunch = datasets.load_wine()
+        X_tr, X_te, y_tr, y_te = train_test_split(bunch.data, bunch.target)
+        model = make_pipeline(StandardScaler(), LogisticRegression()).fit(X_tr, y_tr)
+        """,
+            [],
+        ),
+        (
+            """
+        from sklearn.datasets import make_classification
+        X, y = make_classification(n_samples=200)
+        X_res, y_res = SMOTE().fit_resample(X, y)
+        print(cross_val_score(LogisticRegression(), X_res, y_res))
+        """,
+            ["HV-COD-005"],
+        ),
+    ],
+)
+def test_sklearn_loaders(tmp_path, body, expected):
+    assert codes(run(tmp_path, body)) == expected

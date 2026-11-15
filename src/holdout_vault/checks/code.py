@@ -130,6 +130,13 @@ def merge(vals: Iterable[Val]) -> Val:
     if not vals:
         return EMPTY
     consts = {v.const for v in vals}
+    items = None
+    if all(v.items is not None for v in vals) and len({len(v.items) for v in vals}) == 1:
+        items = tuple(merge(v.items[i] for v in vals) for i in range(len(vals[0].items)))  # same-shape tuples
+    fields = None
+    if all(v.fields is not None for v in vals):
+        keys = list(dict.fromkeys(k for v in vals for k, _ in v.fields))
+        fields = tuple((k, merge(f for v in vals if (f := v.field(k)) is not None)) for k in keys)
     return Val(
         tags=frozenset().union(*(v.tags for v in vals)),
         has_target=any(v.has_target for v in vals),
@@ -138,6 +145,8 @@ def merge(vals: Iterable[Val]) -> Val:
         cands=frozenset().union(*(v.cands for v in vals)),
         const=consts.pop() if len(consts) == 1 else None,
         tcols=frozenset().union(*(v.tcols for v in vals)),
+        items=items,
+        fields=fields,
     )
 
 
@@ -454,6 +463,14 @@ class Analyzer:
                 self.exec_block(case.body, env, mod, func, depth, frame)
 
     def bind_loop(self, target: ast.expr, it: Val, env: dict) -> None:
+        if "enumerate" in it.tags:
+            inner = replace(it, tags=it.tags - {"enumerate"})
+            if isinstance(target, ast.Tuple) and len(target.elts) == 2:
+                self.assign_plain(target.elts[0], EMPTY, env)  # the counter
+                self.bind_loop(target.elts[1], inner, env)
+            else:
+                self.assign_plain(target, EMPTY, env)
+            return
         # for tr, te in kf.split(X)  /  for i, (tr, te) in enumerate(kf.split(X))
         if it.items is not None and "cvsplit" in it.tags and isinstance(target, ast.Tuple) and len(target.elts) == 2:
             inner = target.elts[1] if isinstance(target.elts[1], ast.Tuple) else target
@@ -466,9 +483,27 @@ class Analyzer:
         if it.colset:
             self.assign_plain(target, EMPTY, env)
             return
+        tuples = [x for x in (it.items or ()) if x.items is not None]
+        if tuples and len(tuples) == len(it.items or ()) and len({len(x.items) for x in tuples}) == 1:
+            # iterating a list of (X, y) pairs: one element is a pair, merged position by position
+            width = len(tuples[0].items)
+            row = Val(items=tuple(merge(t.items[i] for t in tuples) for i in range(width)))
+            if not isinstance(target, ast.Tuple):
+                self.assign_plain(target, row, env)
+                return
         if isinstance(target, ast.Tuple):
+            rows = [x for x in (it.items or ()) if x.items is not None and len(x.items) == len(target.elts)]
+            if rows and len(rows) == len(it.items or ()):
+                # for X, y in [(X1, y1), (X2, y2)]: each name takes its own column
+                for i, elt in enumerate(target.elts):
+                    self.assign_plain(elt, merge(r.items[i] for r in rows), env)
+                return
             for elt in target.elts:
-                self.assign_plain(elt, merge(flatten(it)) if it.data() else EMPTY, env)
+                self.assign_plain(
+                    elt,
+                    replace(merge(flatten(it)), tags=merge(flatten(it)).tags - {"target"}) if it.data() else EMPTY,
+                    env,
+                )
         else:
             self.assign_plain(target, merge(flatten(it)) if it.data() else replace(it, items=None), env)
 
@@ -500,6 +535,14 @@ class Analyzer:
 
     def assign(self, target: ast.expr, v: Val, value: ast.expr, env: dict, mod: Module, func: str | None) -> None:
         if isinstance(target, ast.Name):
+            if (
+                "valid" in v.tags
+                and "train" not in v.tags
+                and TRAIN_NAME.search(target.id)
+                and not VALID_NAME.search(target.id)
+            ):
+                # X_train_a, X_train_b = train_test_split(X_train): both halves are training data
+                v = replace(v, tags=(v.tags - {"valid"}) | {"train"})
             env[target.id] = self.retag_by_name(target.id, v, value)
         elif isinstance(target, ast.Attribute) and self.eval(target.value, env, mod, func, 0).inst is not None:
             self.set_ref(target, self.retag_by_name(target.attr, v, value), env, mod)
@@ -604,6 +647,11 @@ class Analyzer:
             full = module if attr is None else f"{module}.{attr}"
             return f"{full}.{rest}" if rest else full
         return dotted
+
+    @staticmethod
+    def from_sklearn_datasets(name: str, mod: Module) -> bool:
+        origin = mod.imports.get(name)
+        return bool(origin) and origin[0].startswith("sklearn.datasets")
 
     def set_ref(self, target: ast.expr, v: Val, env: dict, mod: Module) -> None:
         """Store ``v`` where ``target`` (a name, ``self.x`` or ``obj.x``) lives."""
@@ -950,7 +998,9 @@ class Analyzer:
         if name == "get" and base.fields is not None and args and isinstance(args[0].const, str):
             got = base.field(args[0].const)
             return got if got is not None else (args[1] if len(args) > 1 else EMPTY)
-        if name in {"list", "tuple", "sorted", "set", "enumerate", "iter", "tqdm"} and isinstance(fnode, ast.Name):
+        if name == "enumerate" and isinstance(fnode, ast.Name) and args:
+            return replace(args[0], tags=args[0].tags | {"enumerate"})
+        if name in {"list", "tuple", "sorted", "set", "iter", "tqdm"} and isinstance(fnode, ast.Name):
             return args[0] if len(args) == 1 else merge(args)
         cls_name = fnode.id if isinstance(fnode, ast.Name) else None
         if cls_name and self.lookup(cls_name, env, mod).inst == cls_name and cls_name not in env:
@@ -1046,6 +1096,30 @@ class Analyzer:
             paths = [a.const for a in args if a.const] + ([base.const] if base.const else [])
             self.check_write(paths, mod, line, name)
             return EMPTY
+
+        # scikit-learn's dataset loaders and generators: unsplit data, X and y
+        if re.match(r"(load|fetch|make)_\w+$", name) and (
+            dotted.startswith(("datasets.", "sklearn.datasets.")) or self.from_sklearn_datasets(name, mod)
+        ):
+            subset = next(
+                (k.value.value for k in node.keywords if k.arg == "subset" and isinstance(k.value, ast.Constant)), None
+            )
+            side = {"train": "train", "test": "valid"}.get(subset, "full")
+            x = Val(tags=frozenset({side}))
+            y = Val(tags=frozenset({side, "target"}))
+            as_tuple = any(k.arg == "return_X_y" for k in node.keywords) or name.startswith("make_")
+            return (
+                Val(items=(x, y), tags=frozenset({side}))
+                if as_tuple
+                else Val(
+                    tags=frozenset({side}),
+                    fields=(
+                        ("data", x),
+                        ("frame", Val(tags=frozenset({side}))),
+                        ("target", y),
+                    ),
+                )
+            )
 
         # the agent's split ------------------------------------------------------------------
         if name in SPLIT_FUNCS:
@@ -1152,7 +1226,11 @@ class Analyzer:
             return EMPTY
         data_args = [a for a in [*args, *kwargs.values()] if a.data()]
         if data_args:
-            return replace(merge(data_args), items=None, const=None, est=None)
+            mixed = merge(data_args)
+            keep_target = all("target" in a.tags for a in data_args)
+            return replace(
+                mixed, tags=mixed.tags if keep_target else mixed.tags - {"target"}, items=None, const=None, est=None
+            )
         return EMPTY
 
     def check_target_input(self, x: Val, mod: Module, line: int, where: str) -> None:

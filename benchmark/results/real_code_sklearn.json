@@ -1,0 +1,44 @@
+{
+  "source": "scikit-learn examples",
+  "commit": "ee56c8b5d809dc7b970a140ed501269b63c69cf8",
+  "licence": "BSD-3-Clause",
+  "files": 282,
+  "findings": 4,
+  "true_by_definition": 4,
+  "unreviewed": 0,
+  "first_contact": {
+    "findings": 43,
+    "true": 4,
+    "note": "before the fixes informed by these files"
+  },
+  "detail": [
+    {
+      "code": "HV-COD-001",
+      "file": "applications/plot_digits_denoising.py",
+      "line": 41,
+      "severity": "warn",
+      "verdict": "true: MinMaxScaler fitted on all of X, then train_test_split"
+    },
+    {
+      "code": "HV-COD-001",
+      "file": "linear_model/plot_tweedie_regression_insurance_claims.py",
+      "line": 257,
+      "severity": "warn",
+      "verdict": "true: ColumnTransformer fitted on the whole frame, which is split afterwards"
+    },
+    {
+      "code": "HV-COD-001",
+      "file": "neighbors/plot_digits_kde_sampling.py",
+      "line": 30,
+      "severity": "warn",
+      "verdict": "true: PCA fitted before GridSearchCV over its output"
+    },
+    {
+      "code": "HV-COD-001",
+      "file": "svm/plot_rbf_parameters.py",
+      "line": 129,
+      "severity": "warn",
+      "verdict": "true: scaler fitted on all data before GridSearchCV; the example's comment says it is 'cheating a bit'"
+    }
+  ]
+}
