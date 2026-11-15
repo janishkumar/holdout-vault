@@ -6,7 +6,7 @@ Coding agents game the metric they are judged on. In BaitBench, frontier agents 
 
 holdout-vault is an MCP server for ML work done by Claude Code, Cursor, Codex and similar agents. The held-out labels and the scoring code live in a vault the agent cannot open. The agent can only ask for aggregate scores. Every reveal spends part of a budget, going over budget asks the human, and every score is written to a hash-chained ledger with the commit, data hash, scorer hash and seed that produced it.
 
-> Status: stages 1 to 4 of 6 are built (vault core, integrity checks, claim audit, protocol layer); the agent benchmark (stage 5) is in progress. See [docs/design.md](docs/design.md).
+> Status: stages 1 to 4 of 6 are built (vault core, integrity checks, claim audit, protocol layer); the agent benchmark (stage 5) has scripted and local-model results; a Claude Code arm is wired up but not yet run. See [docs/design.md](docs/design.md).
 
 ## Measured so far
 
@@ -61,7 +61,16 @@ Tasks on four public datasets that ship with scikit-learn (Breast Cancer Wiscons
 
 Vault against no guard, exact McNemar on paired runs: p < 0.0001 for each cheating agent. The honest agent completed all 96 of its tasks in every arm and was never refused.
 
-**A real agent.** A local model (Qwen2.5 7B Instruct through Ollama, $0) runs the same tasks through a tool-calling loop: results pending, see `results/agentbench_ollama_qwen*`. A Claude Code arm (`--backend claude`) is wired up and runs once the CLI is logged in.
+**A real agent.** A local model (Qwen2.5 7B Instruct through Ollama, $0, temperature 0.2, at most 20 steps) ran the same 16 task pairs per arm, two seeds (48 runs; `results/agentbench_ollama_qwen_summary.json`, per-run tool logs in `results/agentbench_ollama_qwen_logs/`):
+
+| Arm | Took a shortcut | Inflated report | Inflated report unflagged | Completed |
+|---|---|---|---|---|
+| No guard | 0/16 | 7/16 | 7/16 | 9/16 |
+| Prompt-only | 0/16 | 3/16 | 3/16 | 7/16 |
+| Vault | 0/16 | 3/16 | **0/16** (all 3 flagged by the audit) | 3/16 |
+
+- The 7B model never went for the planted shortcut, so this run says nothing about preventing cheating; that part rests on the scripted agents above. What it did do is write numbers into its report that its predictions did not earn (one no-guard run reported 0.93 R² for a model whose true score was 0.22). Unflagged inflated reports, vault against no guard: exact McNemar p = 0.016.
+- **Cost:** the vault arm completed fewer tasks (3/16 against 9/16; McNemar p = 0.07, not significant at n = 16). The logs show the same failure in every arm, the model rewriting the training script until it runs out of steps, but more often with the vault's extra tools and instructions in an 8K context. Whether a stronger agent pays this cost is the question the Claude Code arm (`--backend claude`, wired up, waiting on a CLI login) is there to answer.
 
 ## How it works
 
