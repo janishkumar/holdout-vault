@@ -6,7 +6,7 @@ Coding agents game the metric they are judged on. In BaitBench, frontier agents 
 
 holdout-vault is an MCP server for ML work done by Claude Code, Cursor, Codex and similar agents. The held-out labels and the scoring code live in a vault the agent cannot open. The agent can only ask for aggregate scores. Every reveal spends part of a budget, going over budget asks the human, and every score is written to a hash-chained ledger with the commit, data hash, scorer hash and seed that produced it.
 
-> Status: stages 1 and 2 of 6 (vault core, integrity checks). Claim auditing, the Tasks/Apps protocol layer and the reward-hacking benchmark are next. See [docs/design.md](docs/design.md).
+> Status: stages 1 to 4 of 6 are built (vault core, integrity checks, claim audit, protocol layer); the agent benchmark (stage 5) is in progress. See [docs/design.md](docs/design.md).
 
 ## Measured so far
 
@@ -33,6 +33,15 @@ The misses on each corpus were fixed in general form (for example instance state
 
 **Row checks** on 100 seeded synthetic splits per scenario (`benchmark/row_checks.py`): exact duplicates, time overlap and group overlap were found in 100/100 splits; near-copies of 2% of test rows in 76/100 (CI 67% to 83%) and of 10% in 97/100. Across 500 clean splits, including rounded features with natural repeats and all-categorical rows, nothing was flagged (CI 0% to 3.7% per scenario).
 
+**Claims in reports are traced to the score that produced them.** `audit_claims` reads the agent's Markdown, text and notebooks, extracts every metric claim (prose, value sequences, tables either way round) and checks it against the ledger, MLflow and JSON run records. Two held-out sets of labelled reports, written by separate model sessions from the label definitions alone, were each scored once before any change (`benchmark/claim_checks.py`):
+
+| Held-out report set (first run) | Reports / claims | Claims found (precision, recall) | Unsupported claims caught (precision, recall, 95% CI) |
+|---|---|---|---|
+| 1: results sections, summaries, tables | 40 / 160 | 1.00, 0.94 | 1.00 (0.96 to 1.00), 0.95 (0.88 to 0.98) |
+| 2: chat logs, model cards, transposed tables, FAQs | 30 / 146 | 1.00, 0.69 | 1.00 (0.95 to 1.00), 0.71 (0.61 to 0.79) |
+
+No claim was ever given a wrong label when found (label accuracy 0.97 and 0.99 on found claims). Misses are claims the extractor did not see. After general fixes (transposed tables, value sequences, citations per clause) recall is 0.99 and 0.86; the remaining misses are numbers whose metric is named only on an earlier line, such as a chat reply or a Q&A answer.
+
 **Leaked label files** (`benchmark/canary_artifacts.py`, 100 trials): a workspace file holding the sealed labels for 25% or more of the test rows was caught every time, for 10% of rows 56/100, for 5% 3/100 (too few canary rows to test). No honest workspace (exported data, predictions, out-of-fold predictions) was flagged.
 
 ## How it works
@@ -49,6 +58,8 @@ The misses on each corpus were fixed in general form (for example instance state
 - **Watch-only mode** (no Docker): the test file stays where it is. Its hash, the scorer hash and the sealed label hash are checked on every call, and canaries still work. This mode **detects, it does not prevent**, and every response says so.
 - **Budget:** derived from the ledger, never from a config file. Validation errors, tamper findings and refused submissions never spend a reveal. Going over budget triggers a mid-call confirmation (a multi-round-trip request on MCP 2026-07-28, classic elicitation on older clients) that the human answers.
 - **Integrity checks:** before every score the front door analyses the workspace's Python files and notebooks and looks for data files carrying the hidden canary labels. Reading the labelled test file or the vault store, tampering with vault files, patching scoring functions and canary labels in a file all **block** the score (logged, no reveal spent). Ordinary leakage mistakes (preprocessing fitted before the split, fitting on validation data, the target as a feature, resampling before the split) are **warnings** attached to the score and the ledger, because the sealed test set is outside the agent's code: those mistakes inflate the agent's own validation numbers, not the vault's. Row checks on the split itself run once at registration.
+- **Claim audit:** every metric claim gets one label: `traced` (matches a vault score), `mismatched` (cites an entry or run that recorded something else), `orphaned` (no record has that number), `cherry-picked` (the best of three or more sealed scores, others undisclosed), `stale` (from a commit no longer in the branch's history) or `untrusted-source` (only in the agent's own MLflow/JSON records, flagged further when the workspace code has leakage warnings). Matching is deterministic: same metric after alias normalisation, same value within the precision shown.
+- **Protocol:** `evaluate` runs as an MCP Task (`io.modelcontextprotocol/tasks`, SEP-2663, implemented here because the Python SDK does not ship it) for clients that declare the extension, with status messages and cooperative cancellation; other clients, and over-budget calls that need the human, get an ordinary result. Ledger, provenance and findings are resources with cache hints. A `dashboard` tool backs an MCP App view and carries the same content as text for clients that do not render Apps. Everything works over stdio and stateless Streamable HTTP.
 - **Ledger:** append-only JSONL, each entry hashed over the previous one. `verify-ledger` fails at the first edited, deleted, reordered or truncated entry, and every score handed to the agent carries the entry hash, so a later rewrite contradicts numbers already quoted.
 
 ## Quick start
@@ -84,7 +95,11 @@ Claude Code config:
 | `score(dataset, predictions_path, seed?)` | Aggregate metrics, provenance stamp, ledger entry | On success |
 | `evaluate(dataset, model_path, seed?)` | Same, after running a joblib model or a `predict.py` folder in the runner | On success |
 | `check_leakage(dataset, paths?)` | Row, code and canary-artifact findings, without scoring | No |
+| `audit_claims(paths?, text?)` | Every metric claim in the reports, labelled against the ledger and run records | No |
+| `dashboard()` | Budget, ledger, scores, refusals, findings, own-vs-sealed gap (MCP App plus text) | No |
 | `vault_status()` | Datasets, budget, mode, ledger health | No |
+
+Resources: `ledger://{project}/entries`, `ledger://{project}/entry/{seq}`, `provenance://{project}/{seq}`, `findings://{project}/latest`, `ui://holdout-vault/dashboard.html`.
 
 Every tool has a typed `outputSchema`. Verdicts have a `status` of `scored`, `invalid`, `over_budget`, `refused` or `tamper`. Findings carry a stable code, a severity, a plain-English explanation and an exact location (file and line, notebook cell, or row ids):
 
@@ -102,7 +117,7 @@ Every tool has a typed `outputSchema`. Verdicts have a `status` of `scored`, `in
 | `HV-CAN-002` | Predictions match the hidden canary labels far above chance | block |
 | `HV-SCR-001`, `HV-LAB-001`, `HV-TST-001` | Scorer, sealed labels or watched test file changed since registration | block |
 
-The same checks run from the shell: `holdout-vault check --project churn --dataset v1 --repo ./agent-workspace` (exit code 1 on a blocking finding). `register --strict` refuses a split with row findings.
+The same checks run from the shell: `holdout-vault audit --project churn --repo ./agent-workspace` for claims, and `holdout-vault check --project churn --dataset v1 --repo ./agent-workspace` (exit code 1 on a blocking finding). `register --strict` refuses a split with row findings.
 
 ## Threat model
 
@@ -113,10 +128,12 @@ The same checks run from the shell: `holdout-vault check --project churn --datas
 - Canaries detect predictions built from leaked labels. They do not detect an agent that reads the labels and then trains an honest-looking model on the leaked test rows only.
 - The code checks are static analysis. They follow data through functions, classes, modules, configs and notebooks, but code built to hide a read (`exec`, string obfuscation, a download at runtime) will get past them. They catch the common case and leave a record; the sealed container is what actually keeps the labels out of reach.
 - Model files and pickles in the workspace are never opened by the checks, because unpickling runs arbitrary code.
+- The claim audit reads what is written down. A number whose metric is named only in an earlier line, a chart, or a slide is not seen, and a claim can only be as traceable as the records it is checked against.
 
 ## What didn't work (and what replaced it)
 
 - **The first version of the code checks missed a quarter of the leaks** in the second held-out corpus (recall 0.76), mostly where state lived on `self`, in config dictionaries or behind `functools.partial`. Those are now followed, and the third corpus, written afterwards, scored 0.91.
+- **A loose "metric, a few words, a number" rule for claims** attached numbers to the wrong metric ("0.84 accuracy and a ROC AUC of 0.90" read the AUC as accuracy). The gap may no longer contain another metric's name and must end in a real verb.
 - **A five-row minimum for near-duplicate findings** missed most leaks in small test sets (20/40 at a 2% leak rate). Three rows caught 30/40 with no new false alarms on the clean controls.
 
 - **20 canaries per test set.** Enough to catch a full label leak every time, but only 11% of models built on half-leaked labels. Raising the floor to 100 lifted that to 99% at a false-alarm rate in line with the test level. The 20-canary run is kept as a reproducible ablation: `benchmark/canary_calibration.py --min-canaries 20`.
@@ -132,6 +149,7 @@ uv run pytest -m docker   # sealed-mode end-to-end, needs Docker running
 uv run python benchmark/code_checks.py --corpus benchmark/corpus/code_blind3
 uv run python benchmark/row_checks.py
 uv run python benchmark/canary_artifacts.py
+uv run python benchmark/claim_checks.py --corpus benchmark/corpus/claims_blind2
 ```
 
 ## Credits

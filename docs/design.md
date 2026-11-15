@@ -144,9 +144,11 @@ Spec 2026-07-28, `mcp>=2.3,<3`. Stdio and stateless Streamable HTTP. Determinist
 
 **Resources** (with `ttlMs` cache hints): `ledger://{project}/entries`, `ledger://{project}/entry/{seq}`, `provenance://{project}/{seq}`, `findings://{project}/latest`.
 
-**Tasks.** `evaluate` supports `io.modelcontextprotocol/tasks`: create, status with progress (building runner, predicting, scoring), result, cancel.
+**Tasks.** `evaluate` supports `io.modelcontextprotocol/tasks` (SEP-2663), implemented in this project on the SDK's extension hooks: when a request's client capabilities declare the extension, `tools/call` returns `resultType: "task"` and the work runs in a thread; `tasks/get` reports status and a `statusMessage` (checking the workspace, running the model, scoring), and carries the final `CallToolResult` once completed; `tasks/cancel` is cooperative and nothing is revealed when it lands before scoring; `tasks/update` is acknowledged (these tasks never ask for input). Clients without the extension get `-32021` on `tasks/*` and a synchronous result from `tools/call`. Over-budget calls stay synchronous so the multi-round-trip confirmation reaches the human. A client-side extension that resolves tasks by polling is included.
 
-**MCP App.** `ui://holdout-vault/dashboard.html` shows ledger entries, budget, findings and the public-vs-sealed score gap. Every App-enabled tool also returns a full text summary, since Claude Code does not render Apps.
+**MCP App.** The `dashboard` tool is bound to `ui://holdout-vault/dashboard.html`, a self-contained view of budget, recent sealed scores, refusals, workspace findings, and the gap between the agent's own best number for a metric and the latest sealed score. The tool's structured result carries a `summary` field with the same content as text, since Claude Code does not render Apps.
+
+**Cache hints.** `resources/read` results carry `ttlMs` 5000 (the ledger changes only when a score lands); tool, resource and template lists carry one hour.
 
 **Verdict shape.** Each finding has `code` (stable, for example `HV-ROW-001`), `severity` (`block`, `warn`, `info`), `title`, `explanation` (plain English), `location` (file, line, column, or split and row ids), and `evidence`. Blocking findings refuse to score and do not spend.
 
@@ -186,19 +188,21 @@ A checker failure never blocks scoring: it returns an `HV-CHK-000` info finding 
 
 ## 9. Provenance and claims
 
-**Run records read:** the vault ledger, MLflow local file stores (`mlruns/`) and SQLite tracking DBs, and plain JSON or JSONL metric files matched by a configurable glob. W&B offline run directories are read only if that works without an account.
+**Run records read:** score and evaluate entries in the vault ledger (the only trusted source); MLflow local file stores (`mlruns/`) and SQLite tracking databases, read directly so MLflow is not a dependency; JSON and JSONL metric files matched by glob, every numeric leaf read as a metric; and W&B offline run summaries (`wandb/*/files/wandb-summary.json`), which need no account. Recorded names are normalised (`val_auc`, `eval/roc_auc` and `accuracy_score` all map to their canonical metric) and percentages stored as 0 to 100 are rescaled.
 
-**Claim extraction:** deterministic regex and table parsing for "metric name near number" patterns in Markdown, text and notebooks. An optional local Ollama model can propose extra claims from free text, but every proposed claim is re-parsed deterministically, and matching never uses a model.
+**Claim extraction:** deterministic, in Markdown, text and notebook markdown cells. It finds "metric near number" in either order, short phrases between them ("log loss on the fraud set is 0.30"; the phrase may not contain another metric's name and must end in a verb such as is, was, = or :), value sequences ("rose from 0.81 to 0.84"), and tables with metrics as columns or as rows. Code blocks and inline code are skipped. Each claim keeps the precision shown (0.84 means within 0.005), its scope (validation, train, sealed or unspecified, from the surrounding words) and any ledger entry cited in its own clause. The optional local-model proposal step was not needed and is not built: matching never uses a model.
 
-**Matching:** a claim matches a ledger entry when the metric name is the same (after alias normalisation) and the value agrees within the precision shown. Labels:
+**Labels**, one per claim, in this order of precedence:
+- `mismatched`: cites a ledger entry or a tracked run, and the value recorded there differs. A citation decides the label even if the number happens to match another score.
+- `orphaned`: cites an entry that does not exist or holds no score, or no record anywhere has that value.
+- `stale`: matches only scores whose commit is not an ancestor of HEAD.
+- `cherry-picked`: matches the best of three or more sealed scores for that dataset and metric, and the document neither lists the others nor says something like "best of 4".
 - `traced`: matches a vault score.
-- `mismatched`: names a run or entry, but the value differs.
-- `orphaned`: no vault score with that value exists.
-- `cherry-picked`: matches the best of N ≥ 3 scores for the same dataset with the others undisclosed.
-- `stale`: matches a score whose commit is no longer an ancestor of HEAD.
-- `untrusted-source`: matches only an MLflow or JSON record, not a vault score.
+- `untrusted-source`: matches only the agent's own MLflow, JSON or W&B records. When the workspace code carries leakage warnings (HV-COD-001, 002, 003, 005) the claim is flagged with them, since those numbers are the ones leakage inflates.
 
-Output includes a one-line summary such as "12 metrics claimed, 9 traced, 3 unsupported".
+Output includes a summary such as "12 metric claim(s), 9 traced, 3 unsupported (2 orphaned, 1 untrusted-source)".
+
+**Evaluation:** a fixed world (a git repo with an abandoned branch, a ledger with known scores, MLflow file and SQLite stores, a JSON file and a W&B summary, `benchmark/claims_world.py`) and labelled reports written against it by separate model sessions from the label definitions alone. Each set was scored once before any change informed by it; both sets are kept as a regression floor.
 
 ## 10. Benchmark
 
